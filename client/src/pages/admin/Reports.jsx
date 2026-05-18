@@ -1,0 +1,15 @@
+import React from "react";
+import AdminLayout from "../../components/admin/AdminLayout";
+
+const Reports = () => (
+  <AdminLayout>
+    <div className="p-6">
+      <div className="rounded-[1.5rem] bg-white p-8 shadow-sm ring-1 ring-slate-200">
+        <h1 className="text-3xl font-semibold text-slate-900">Reports</h1>
+        <p className="mt-3 text-slate-600">Reporting modules can plug into attendance, productivity, and payroll data here.</p>
+      </div>
+    </div>
+  </AdminLayout>
+);
+
+export default Reports;
