@@ -1,21 +1,15 @@
 import React, { useState } from "react";
-import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { FaCheckCircle, FaClock } from "react-icons/fa";
 import { api } from "../../lib/api";
 
 const ClockInOut = ({ attendance, onUpdate }) => {
-  const { token } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
 
   const handleClockIn = async () => {
     setLoading(true);
     try {
-      await api.post(
-        "/employee/attendance/clock-in",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post("/employee/attendance/clock-in");
       toast.success("Clocked in successfully");
       await onUpdate?.();
     } catch (error) {
@@ -28,11 +22,7 @@ const ClockInOut = ({ attendance, onUpdate }) => {
   const handleClockOut = async () => {
     setLoading(true);
     try {
-      await api.put(
-        "/employee/attendance/clock-out",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put("/employee/attendance/clock-out");
       toast.success("Clocked out successfully");
       await onUpdate?.();
     } catch (error) {

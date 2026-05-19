@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
-import { api, setAuthToken } from "../../lib/api";
+import { api, clearAuthStorage, setAuthToken } from "../../lib/api";
 
 const storedUser = localStorage.getItem("user");
 const storedToken = localStorage.getItem("token");
@@ -53,10 +53,7 @@ export const login = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk("auth/logout", async () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
-  setAuthToken(null);
+  clearAuthStorage();
   toast.success("Logged out successfully");
   return null;
 });
@@ -70,7 +67,11 @@ const authSlice = createSlice({
     loading: false,
     error: null
   },
-  reducers: {},
+  reducers: {
+    setToken: (state, action) => {
+      state.token = action.payload;
+    }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(login.pending, (state) => {
@@ -97,4 +98,5 @@ const authSlice = createSlice({
   }
 });
 
+export const { setToken } = authSlice.actions;
 export default authSlice.reducer;

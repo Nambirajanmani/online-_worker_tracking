@@ -28,7 +28,7 @@ const EmployeeLayout = ({ children }) => {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <Link to="/employee" className="text-2xl font-semibold text-stone-900">
-              Team Pulse
+              Employee Portal
             </Link>
             <p className="text-sm text-stone-500">
               {user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Employee"}
