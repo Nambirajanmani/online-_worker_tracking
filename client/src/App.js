@@ -18,6 +18,8 @@ import LeaveRequest from "./pages/employee/LeaveRequest";
 import MyReports from "./pages/employee/MyReports";
 import MyTasks from "./pages/employee/MyTasks";
 import TimeTracker from "./pages/employee/TimeTracker";
+import SessionHistory from "./pages/employee/SessionHistory";
+import LiveMonitoring from "./pages/admin/LiveMonitoring";
 
 const ProtectedRoute = ({ allowedRoles, children }) => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -87,6 +89,14 @@ function App() {
           }
         />
         <Route
+          path="/admin/live-monitoring"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <LiveMonitoring />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/tasks"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
@@ -140,6 +150,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["employee"]}>
               <TimeTracker />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employee/session-history"
+          element={
+            <ProtectedRoute allowedRoles={["employee"]}>
+              <SessionHistory />
             </ProtectedRoute>
           }
         />
