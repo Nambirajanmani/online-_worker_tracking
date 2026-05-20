@@ -23,11 +23,40 @@ module.exports = (io) => {
   io.on("connection", (socket) => {
     socket.join(`user_${socket.user.id}`);
     if (socket.user.role === "admin") {
-      socket.join("admin");
+      socket.join("admin_room");
     }
+
+    // Get employee_id for room joining
+    pool.query("SELECT id FROM employees WHERE user_id = $1", [socket.user.id])
+      .then(result => {
+        if (result.rows.length > 0) {
+          socket.employee_id = result.rows[0].id;
+          socket.join(`employee_${socket.employee_id}`);
+        }
+      })
+      .catch(err => console.error("Error getting employee_id:", err));
+
+    // Task events
+    socket.on("task:joinRoom", (taskId) => {
+      socket.join(`task_${taskId}`);
+    });
+
+    socket.on("task:leaveRoom", (taskId) => {
+      socket.leave(`task_${taskId}`);
+    });
+
+    // Receive live status updates from employee client
+    socket.on("timer:status_ping", (data) => {
+      // Broadcast this to admins for live monitoring
+      io.to("admin_room").emit("timer:status_update", {
+        employee_id: socket.employee_id,
+        ...data
+      });
+    });
 
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.user.id}`);
     });
   });
 };
+

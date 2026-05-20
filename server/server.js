@@ -21,6 +21,7 @@ const reportRoutes = require("./routes/reportRoutes");
 const trackingRoutes = require("./routes/trackingRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const projectRoutes = require("./routes/projectRoutes");
+const timerRoutes = require("./routes/timerRoutes");
 const { errorHandler } = require("./middleware/errorMiddleware");
 const { logger } = require("./utils/logger");
 
@@ -46,10 +47,16 @@ const io = new Server(httpServer, {
   }
 });
 
+const isProduction = process.env.NODE_ENV === "production";
+const rateLimitEnabled =
+  isProduction || process.env.RATE_LIMIT_ENABLED === "true";
+
 const limiter = rateLimit({
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
   max: Number(process.env.RATE_LIMIT_MAX_REQUESTS || 100),
-  message: "Too many requests from this IP, please try again later."
+  message: { success: false, message: "Too many requests from this IP, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false
 });
 
 const uploadPath = path.resolve(__dirname, process.env.UPLOAD_PATH || "./uploads");
@@ -82,10 +89,15 @@ app.use(
   })
 );
 app.use("/uploads", express.static(uploadPath));
-app.use("/api/", limiter);
+if (rateLimitEnabled) {
+  app.use("/api/", limiter);
+} else {
+  logger.info("API rate limiting disabled (development mode)");
+}
 
 require("./sockets/socketHandler")(io);
 app.set("io", io);
+global.io = io;
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
@@ -97,6 +109,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/tracking", trackingRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/timer", timerRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).json({

@@ -1,6 +1,13 @@
 const express = require("express");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
-const { getLeaveRequests, getLeaveBalances, createLeaveRequest, updateLeaveStatus, cancelLeaveRequest } = require("../controllers/leaveController");
+const {
+  getLeaveRequests,
+  getLeaveBalances,
+  createLeaveRequest,
+  updateEmployeeLeaveRequest,
+  updateLeaveStatus,
+  cancelLeaveRequest
+} = require("../controllers/leaveController");
 
 const router = express.Router();
 
