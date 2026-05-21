@@ -10,6 +10,7 @@ const {
   cancelLeaveRequest
 } = require("../controllers/leaveController");
 const { getMyTasks, updateTask, addTaskUpdate } = require("../controllers/taskController");
+const { getActiveTimer, stopTimer } = require("../controllers/timerController");
 
 const router = express.Router();
 
@@ -20,6 +21,8 @@ router.get("/attendance", protect, employeeOnly, getAttendanceHistory);
 router.post("/attendance/clock-in", protect, employeeOnly, clockIn);
 router.put("/attendance/clock-out", protect, employeeOnly, clockOut);
 router.get("/time-summary", protect, employeeOnly, getTimeSummary);
+router.get("/active-timer", protect, employeeOnly, getActiveTimer);
+router.post("/stop-timer", protect, employeeOnly, stopTimer);
 router.get("/tasks", protect, employeeOnly, getMyTasks);
 router.put("/tasks/:id", protect, employeeOnly, updateTask);
 router.post("/tasks/:id/updates", protect, employeeOnly, addTaskUpdate);

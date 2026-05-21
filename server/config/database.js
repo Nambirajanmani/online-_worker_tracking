@@ -128,6 +128,22 @@ const migrateActivityLogsSchema = async (client) => {
   await client.query(`ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
 };
 
+const migrateTimerSessionsSchema = async (client) => {
+  await client.query(`ALTER TABLE timer_sessions DROP CONSTRAINT IF EXISTS timer_sessions_status_check`);
+
+  try {
+    await client.query(`
+      ALTER TABLE timer_sessions
+      ADD CONSTRAINT timer_sessions_status_check
+      CHECK (status IN ('running', 'paused', 'stopped', 'idle', 'completed'))
+    `);
+  } catch (error) {
+    if (error.code !== "42710") {
+      throw error;
+    }
+  }
+};
+
 const createTables = async (client) => {
   await client.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -290,7 +306,7 @@ const createTables = async (client) => {
       active_duration INTEGER DEFAULT 0,
       idle_duration INTEGER DEFAULT 0,
       break_duration INTEGER DEFAULT 0,
-      status VARCHAR(50) CHECK (status IN ('running', 'paused', 'stopped', 'idle')) DEFAULT 'running',
+      status VARCHAR(50) CHECK (status IN ('running', 'paused', 'stopped', 'idle', 'completed')) DEFAULT 'running',
       notes TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -332,6 +348,7 @@ const createTables = async (client) => {
   await migrateAttendanceSchema(client);
   await migrateLeaveRequestsSchema(client);
   await migrateActivityLogsSchema(client);
+  await migrateTimerSessionsSchema(client);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(employee_id)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_task_updates_task ON task_updates(task_id)`);

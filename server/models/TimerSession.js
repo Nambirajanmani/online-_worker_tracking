@@ -28,6 +28,14 @@ class TimerSession {
     );
     return result.rows[0];
   }
+
+  static async findById(id) {
+    const result = await pool.query(
+      `SELECT * FROM timer_sessions WHERE id = $1`,
+      [id]
+    );
+    return result.rows[0];
+  }
   
   static async findActiveSessions() {
     const result = await pool.query(
@@ -78,7 +86,7 @@ class TimerSession {
               COALESCE(SUM(active_duration), 0) as active_duration,
               COALESCE(SUM(idle_duration), 0) as idle_duration
        FROM timer_sessions
-       WHERE employee_id = $1 AND DATE(start_time) = $2 AND status = 'stopped'`,
+       WHERE employee_id = $1 AND DATE(start_time) = $2 AND status IN ('completed', 'stopped')`,
       [employeeId, dateStr]
     );
     return result.rows[0];

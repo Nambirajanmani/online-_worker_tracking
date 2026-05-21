@@ -3,6 +3,79 @@ const ActivityLog = require("../models/ActivityLog");
 const Task = require("../models/Task");
 const Employee = require("../models/Employee");
 
+const ACTIVE_TIMER_STATUSES = ["running", "paused", "idle"];
+
+const toSeconds = (value) => Number(value || 0);
+
+const getSegmentSeconds = (session, now = new Date()) => {
+  if (!session) return 0;
+  const anchor = session.updated_at || session.start_time;
+  const startedAt = anchor ? new Date(anchor) : null;
+  if (!startedAt || Number.isNaN(startedAt.getTime())) return 0;
+  return Math.max(0, Math.floor((now.getTime() - startedAt.getTime()) / 1000));
+};
+
+const calculateElapsedSeconds = (session, now = new Date()) => {
+  if (!session) return 0;
+  const activeDuration = toSeconds(session.active_duration);
+  if (session.status === "running") {
+    return activeDuration + getSegmentSeconds(session, now);
+  }
+  return activeDuration;
+};
+
+const formatActiveTimerResponse = (session) => {
+  if (!session || !ACTIVE_TIMER_STATUSES.includes(session.status)) {
+    return null;
+  }
+
+  return {
+    timer_id: session.id,
+    task_id: session.task_id,
+    task_title: session.task_name,
+    project_name: session.project_name || "No project assigned",
+    start_time: session.start_time,
+    status: session.status.toUpperCase(),
+    elapsed_seconds: calculateElapsedSeconds(session),
+  };
+};
+
+const formatTimeDisplay = (value) => {
+  if (!value) return "--";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "--";
+  return parsed.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+const formatDurationDisplay = (seconds) => {
+  const safeSeconds = Math.max(0, toSeconds(seconds));
+  const h = Math.floor(safeSeconds / 3600).toString().padStart(2, "0");
+  const m = Math.floor((safeSeconds % 3600) / 60).toString().padStart(2, "0");
+  const s = Math.floor(safeSeconds % 60).toString().padStart(2, "0");
+  return `${h}:${m}:${s}`;
+};
+
+const formatCompletedTimerResponse = (session) => ({
+  id: session.id,
+  timer_id: session.id,
+  task_id: session.task_id,
+  employee_id: session.employee_id,
+  task_title: session.task_name,
+  start_time: formatTimeDisplay(session.start_time),
+  end_time: formatTimeDisplay(session.end_time),
+  total_duration: formatDurationDisplay(session.total_duration),
+  status: "COMPLETED",
+  raw: {
+    start_time: session.start_time,
+    end_time: session.end_time,
+    total_duration: session.total_duration,
+  },
+});
+
 exports.startTimer = async (req, res) => {
   try {
     const { task_id } = req.body;
@@ -16,14 +89,14 @@ exports.startTimer = async (req, res) => {
     // Check if there's already an active timer
     const activeSession = await TimerSession.findActiveByEmployeeId(employee.id);
     if (activeSession) {
-      return res.status(400).json({ success: false, message: "Another timer is already running" });
+      return res.status(400).json({
+        success: false,
+        message: "Another timer is already running",
+        active_timer: formatActiveTimerResponse(activeSession),
+      });
     }
 
-    // Get task details
-    // Note: Assuming Task.findById exists, adjust if necessary
-    const { pool } = require("../config/database");
-    const taskResult = await pool.query("SELECT * FROM tasks WHERE id = $1", [task_id]);
-    const task = taskResult.rows[0];
+    const task = await Task.findById(task_id);
     
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
@@ -32,7 +105,7 @@ exports.startTimer = async (req, res) => {
       employee_name: `${employee.first_name} ${employee.last_name}`,
       task_id: task.id,
       task_name: task.task_title,
-      project_name: null // Assuming no project specific linked to task in this example, or fetch it if exists
+      project_name: task.project_name || null
     });
 
     await ActivityLog.create({
@@ -66,12 +139,7 @@ exports.pauseTimer = async (req, res) => {
       return res.status(400).json({ success: false, message: "No running timer found" });
     }
 
-    // calculate active duration to add
-    const now = new Date();
-    // In a real scenario we'd track precise intervals, for now we will just mark as paused.
-    // Frontend is calculating exact seconds. We rely on frontend's active duration passed if provided,
-    // or calculate from last update. Let's just update the status for simplicity and add active_duration later or accept from body.
-    const active_duration = req.body.active_duration || activeSession.active_duration;
+    const active_duration = toSeconds(activeSession.active_duration) + getSegmentSeconds(activeSession);
 
     const updated = await TimerSession.update(activeSession.id, { 
       status: 'paused', 
@@ -108,8 +176,10 @@ exports.resumeTimer = async (req, res) => {
       return res.status(400).json({ success: false, message: "No paused timer found" });
     }
 
-    const break_duration = req.body.break_duration || activeSession.break_duration;
-    const idle_duration = req.body.idle_duration || activeSession.idle_duration;
+    const pausedSeconds = getSegmentSeconds(activeSession);
+    const isIdleSession = activeSession.status === "idle";
+    const break_duration = toSeconds(activeSession.break_duration) + (isIdleSession ? 0 : pausedSeconds);
+    const idle_duration = toSeconds(activeSession.idle_duration) + (isIdleSession ? pausedSeconds : 0);
 
     const updated = await TimerSession.update(activeSession.id, { 
       status: 'running',
@@ -141,15 +211,21 @@ exports.stopTimer = async (req, res) => {
   try {
     const userId = req.user.id;
     const employee = await Employee.findByUserId(userId);
-    const { total_duration, active_duration, idle_duration, break_duration } = req.body;
-    
     const activeSession = await TimerSession.findActiveByEmployeeId(employee.id);
     if (!activeSession) {
       return res.status(400).json({ success: false, message: "No active timer found" });
     }
 
+    const segmentSeconds = activeSession.status === "running" ? getSegmentSeconds(activeSession) : 0;
+    const pausedSeconds = activeSession.status === "paused" ? getSegmentSeconds(activeSession) : 0;
+    const idleSeconds = activeSession.status === "idle" ? getSegmentSeconds(activeSession) : 0;
+    const active_duration = toSeconds(activeSession.active_duration) + segmentSeconds;
+    const break_duration = toSeconds(activeSession.break_duration) + pausedSeconds;
+    const idle_duration = toSeconds(activeSession.idle_duration) + idleSeconds;
+    const total_duration = active_duration + break_duration + idle_duration;
+
     const updated = await TimerSession.update(activeSession.id, { 
-      status: 'stopped',
+      status: 'completed',
       end_time: new Date(),
       total_duration,
       active_duration,
@@ -170,7 +246,12 @@ exports.stopTimer = async (req, res) => {
       global.io.emit("timer_update", { type: "stopped", session: updated });
     }
 
-    res.json({ success: true, session: updated });
+    res.json({
+      success: true,
+      message: "Timer stopped successfully",
+      data: formatCompletedTimerResponse(updated),
+      session: updated,
+    });
   } catch (error) {
     console.error("Stop timer error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -225,7 +306,14 @@ exports.logActivity = async (req, res) => {
       });
       
       if (status_change) {
-        const updated = await TimerSession.update(activeSession.id, { status: status_change });
+        const updatePayload = { status: status_change };
+
+        if (status_change === "idle" && activeSession.status === "running") {
+          updatePayload.active_duration =
+            toSeconds(activeSession.active_duration) + getSegmentSeconds(activeSession);
+        }
+
+        const updated = await TimerSession.update(activeSession.id, updatePayload);
         if (global.io) {
            global.io.emit("timer_update", { type: "status_change", session: updated });
         }
@@ -238,6 +326,24 @@ exports.logActivity = async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.getActiveTimer = async (req, res) => {
+  try {
+    const employee = await Employee.findByUserId(req.user.id);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    const activeSession = await TimerSession.findActiveByEmployeeId(employee.id);
+    res.json({
+      success: true,
+      active_timer: formatActiveTimerResponse(activeSession),
+    });
+  } catch (error) {
+    console.error("Get active timer error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
