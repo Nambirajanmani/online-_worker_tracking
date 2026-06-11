@@ -8,7 +8,6 @@ const { createServer } = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const fs = require("fs");
-const fileUpload = require("express-fileupload");
 const rateLimit = require("express-rate-limit");
 const { pool, connectDB } = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
@@ -81,13 +80,6 @@ app.use(compression());
 app.use(morgan("combined"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(
-  fileUpload({
-    limits: { fileSize: Number(process.env.MAX_FILE_SIZE || 5 * 1024 * 1024) },
-    abortOnLimit: true,
-    createParentPath: true
-  })
-);
 app.use("/uploads", express.static(uploadPath));
 if (rateLimitEnabled) {
   app.use("/api/", limiter);

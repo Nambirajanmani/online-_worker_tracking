@@ -60,6 +60,23 @@ export const deleteEmployee = createAsyncThunk(
   }
 );
 
+export const toggleEmployeeStatus = createAsyncThunk(
+  "employees/toggleStatus",
+  async (employee, { rejectWithValue }) => {
+    try {
+      const { data } = await api.patch(`/admin/employees/${employee.id}/status`);
+      const updatedEmployee = data.data || data;
+      const newStatus = updatedEmployee.is_active;
+      toast.success(`Employee ${newStatus ? "activated" : "deactivated"} successfully`);
+      return updatedEmployee;
+    } catch (error) {
+      const message = error.response?.data?.message || "Failed to update employee status";
+      toast.error(message);
+      return rejectWithValue(error.response?.data || { message });
+    }
+  }
+);
+
 const employeeSlice = createSlice({
   name: "employees",
   initialState: {
@@ -93,6 +110,12 @@ const employeeSlice = createSlice({
       })
       .addCase(deleteEmployee.fulfilled, (state, action) => {
         state.employees = state.employees.filter((employee) => employee.id !== action.payload);
+      })
+      .addCase(toggleEmployeeStatus.fulfilled, (state, action) => {
+        const index = state.employees.findIndex((employee) => employee.id === action.payload.id);
+        if (index !== -1) {
+          state.employees[index] = action.payload;
+        }
       });
   }
 });

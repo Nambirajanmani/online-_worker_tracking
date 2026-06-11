@@ -1,5 +1,5 @@
 const express = require("express");
-const { protect } = require("../middleware/authMiddleware");
+const { protect, adminOnly } = require("../middleware/authMiddleware");
 const {
   getTasks,
   createTask,
@@ -15,7 +15,7 @@ const {
 const router = express.Router();
 
 // Specific routes first (to avoid conflicts)
-router.get("/stats/admin", protect, getTaskStats);
+router.get("/stats/admin", protect, adminOnly, getTaskStats);
 router.get("/stats/my", protect, getMyTaskStats);
 router.get("/my/tasks", protect, getMyTasks);
 

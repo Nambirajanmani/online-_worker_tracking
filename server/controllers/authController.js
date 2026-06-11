@@ -30,6 +30,18 @@ const login = async (req, res) => {
 
     await User.updateLastLogin(user.id);
 
+    let role = user.role;
+    if (user.employee_id) {
+      const expectedRole = user.department === "Management" ? "admin" : "employee";
+      if (user.role !== expectedRole) {
+        await pool.query(
+          "UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+          [expectedRole, user.id]
+        );
+        role = expectedRole;
+      }
+    }
+
     if (user.employee_id) {
       await pool.query(
         `INSERT INTO activity_logs (employee_id, activity_type, description, ip_address, user_agent)
@@ -45,10 +57,12 @@ const login = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: role,
+        department: user.department || null,
         name: `${user.first_name || ""} ${user.last_name || ""}`.trim(),
         employeeId: user.employee_id,
-        employeeCode: user.employee_code
+        employeeCode: user.employee_code,
+        position: user.position || null
       }
     });
   } catch (error) {

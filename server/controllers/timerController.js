@@ -60,20 +60,23 @@ const formatDurationDisplay = (seconds) => {
 };
 
 const formatCompletedTimerResponse = (session) => ({
-  id: session.id,
-  timer_id: session.id,
-  task_id: session.task_id,
-  employee_id: session.employee_id,
-  task_title: session.task_name,
-  start_time: formatTimeDisplay(session.start_time),
-  end_time: formatTimeDisplay(session.end_time),
-  total_duration: formatDurationDisplay(session.total_duration),
+  id: session.id || session.timer_id,
+  task_title: session.task_title || session.task_name || "Untitled task",
+  start_time:
+    typeof session.start_time === "string" && session.start_time.includes(":") && !session.start_time.includes("T")
+      ? session.start_time
+      : formatTimeDisplay(session.start_time),
+  end_time:
+    typeof session.end_time === "string" && session.end_time.includes(":") && !session.end_time.includes("T")
+      ? session.end_time
+      : formatTimeDisplay(session.end_time),
+  total_duration:
+    typeof session.total_duration === "string" && session.total_duration.includes(":")
+      ? session.total_duration
+      : formatDurationDisplay(session.total_duration),
   status: "COMPLETED",
-  raw: {
-    start_time: session.start_time,
-    end_time: session.end_time,
-    total_duration: session.total_duration,
-  },
+  employee_id: session.employee_id,
+  employee_name: session.employee_name,
 });
 
 exports.startTimer = async (req, res) => {
@@ -216,6 +219,11 @@ exports.stopTimer = async (req, res) => {
       return res.status(400).json({ success: false, message: "No active timer found" });
     }
 
+    // Prevent duplicate stop if already completed
+    if (activeSession.status === 'completed' || activeSession.status === 'stopped') {
+      return res.status(400).json({ success: false, message: "Timer already stopped" });
+    }
+
     const segmentSeconds = activeSession.status === "running" ? getSegmentSeconds(activeSession) : 0;
     const pausedSeconds = activeSession.status === "paused" ? getSegmentSeconds(activeSession) : 0;
     const idleSeconds = activeSession.status === "idle" ? getSegmentSeconds(activeSession) : 0;
@@ -224,7 +232,7 @@ exports.stopTimer = async (req, res) => {
     const idle_duration = toSeconds(activeSession.idle_duration) + idleSeconds;
     const total_duration = active_duration + break_duration + idle_duration;
 
-    const updated = await TimerSession.update(activeSession.id, { 
+    const updated = await TimerSession.update(activeSession.id, {
       status: 'completed',
       end_time: new Date(),
       total_duration,

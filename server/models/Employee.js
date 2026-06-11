@@ -3,6 +3,7 @@ const { pool } = require("../config/database");
 class Employee {
   static async create(employeeData, userId) {
     const {
+      employeeCode,
       firstName,
       lastName,
       department,
@@ -14,7 +15,6 @@ class Employee {
       reportingManager
     } = employeeData;
 
-    const employeeCode = `EMP${Date.now()}`;
     const result = await pool.query(
       `INSERT INTO employees (
         user_id, employee_code, first_name, last_name, department, position, phone, address, joining_date, salary, reporting_manager
@@ -37,9 +37,20 @@ class Employee {
     return result.rows[0];
   }
 
+  static async findByEmployeeCode(employeeCode) {
+    const result = await pool.query(
+      `SELECT e.*, u.email, u.is_active, u.role
+       FROM employees e
+       JOIN users u ON e.user_id = u.id
+       WHERE e.employee_code = $1`,
+      [employeeCode]
+    );
+    return result.rows[0];
+  }
+
   static async findById(id) {
     const result = await pool.query(
-      `SELECT e.*, u.email, u.is_active, u.last_login
+      `SELECT e.*, u.email, u.is_active, u.last_login, u.role
        FROM employees e
        JOIN users u ON e.user_id = u.id
        WHERE e.id = $1`,
@@ -50,7 +61,7 @@ class Employee {
 
   static async findByUserId(userId) {
     const result = await pool.query(
-      `SELECT e.*, u.email, u.is_active
+      `SELECT e.*, u.email, u.is_active, u.role
        FROM employees e
        JOIN users u ON e.user_id = u.id
        WHERE e.user_id = $1`,
@@ -61,7 +72,7 @@ class Employee {
 
   static async findAll(filters = {}) {
     let query = `
-      SELECT e.*, u.email, u.is_active, u.last_login
+      SELECT e.*, u.email, u.is_active, u.last_login, u.role
       FROM employees e
       JOIN users u ON e.user_id = u.id
       WHERE 1=1
@@ -87,6 +98,7 @@ class Employee {
 
   static async update(id, updates) {
     const fieldMap = {
+      employeeCode: "employee_code",
       firstName: "first_name",
       lastName: "last_name",
       department: "department",
@@ -116,11 +128,11 @@ class Employee {
     setClauses.push("updated_at = CURRENT_TIMESTAMP");
     values.push(id);
 
-    const result = await pool.query(
+    await pool.query(
       `UPDATE employees SET ${setClauses.join(", ")} WHERE id = $${paramIndex} RETURNING *`,
       values
     );
-    return result.rows[0];
+    return this.findById(id);
   }
 
   static async delete(id) {

@@ -50,6 +50,14 @@ class User {
       [passwordHash, id]
     );
   }
+
+  static async updateIsActive(userId, isActive) {
+    await pool.query(
+      "UPDATE users SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+      [isActive, userId]
+    );
+    return this.findById(userId);
+  }
 }
 
 module.exports = User;

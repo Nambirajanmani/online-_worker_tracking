@@ -6,7 +6,8 @@ const {
   createEmployee,
   updateEmployee,
   deleteEmployee,
-  getEmployeeStats
+  getEmployeeStats,
+  toggleEmployeeStatus
 } = require("../controllers/employeeController");
 const {
   getAttendanceHistory,
@@ -27,6 +28,7 @@ const router = express.Router();
 
 router.route("/employees").get(protect, adminOnly, getEmployees).post(protect, adminOnly, createEmployee);
 router.route("/employees/:id").get(protect, adminOnly, getEmployeeById).put(protect, adminOnly, updateEmployee).delete(protect, adminOnly, deleteEmployee);
+router.patch("/employees/:id/status", protect, adminOnly, toggleEmployeeStatus);
 router.get("/stats", protect, adminOnly, getEmployeeStats);
 router.get("/attendance", protect, adminOnly, getAttendanceHistory);
 router.get("/attendance/tracking", protect, adminOnly, getAdminAttendanceTracking);

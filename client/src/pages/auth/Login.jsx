@@ -27,12 +27,15 @@ const Login = () => {
     if (login.fulfilled.match(result)) {
       const user = result.payload.user;
       const role = user?.role;
+      const department = user?.department;
       
-      if (role) {
-        navigate(role === "admin" ? "/admin" : "/employee");
+      // Management department users go to Admin Dashboard
+      const isAdmin = role === "admin" || department === "Management";
+      
+      if (isAdmin) {
+        navigate("/admin");
       } else {
-        console.error("User role not found in response:", result.payload);
-        navigate("/employee"); // Default fallback
+        navigate("/employee");
       }
     }
   };

@@ -54,6 +54,17 @@ module.exports = (io) => {
       });
     });
 
+    // Report events for real-time updates
+    socket.on("report:submitted", (reportData) => {
+      // Notify all admins of new report submission
+      io.to("admin_room").emit("report:new", reportData);
+    });
+
+    socket.on("report:statusChanged", (reportData) => {
+      // Notify employee of report status change
+      io.to(`user_${reportData.userId}`).emit("report:updated", reportData);
+    });
+
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.user.id}`);
     });

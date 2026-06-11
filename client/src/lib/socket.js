@@ -33,3 +33,33 @@ export const disconnectSocket = () => {
     socket.disconnect();
   }
 };
+
+// Report-specific socket events
+export const listenForReportUpdates = (callback) => {
+  const instance = getSocket();
+  if (instance) {
+    instance.on("report:new", callback);
+    instance.on("report:updated", callback);
+  }
+};
+
+export const emitReportSubmitted = (reportData) => {
+  const instance = getSocket();
+  if (instance?.connected) {
+    instance.emit("report:submitted", reportData);
+  }
+};
+
+export const emitReportStatusChanged = (reportData) => {
+  const instance = getSocket();
+  if (instance?.connected) {
+    instance.emit("report:statusChanged", reportData);
+  }
+};
+
+export const removeReportListeners = () => {
+  if (socket) {
+    socket.off("report:new");
+    socket.off("report:updated");
+  }
+};

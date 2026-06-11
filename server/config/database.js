@@ -23,7 +23,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000
+  connectionTimeoutMillis: 10000
 });
 
 pool.on("connect", () => {
@@ -39,6 +39,7 @@ const connectDB = async () => {
   try {
     // Migrate old tasks schema to new schema if needed
     await migrateTasksSchema(client);
+    await migrateUsersSchema(client);
     await createTables(client);
   } finally {
     client.release();
@@ -62,6 +63,39 @@ const migrateTasksSchema = async (client) => {
     }
   } catch (error) {
     console.log("Tasks schema check passed (new schema or table doesn't exist)");
+  }
+};
+
+const migrateUsersSchema = async (client) => {
+  try {
+    // Check if users table exists with potential schema issues
+    const result = await client.query(`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'users'
+      ORDER BY ordinal_position
+    `);
+    
+    const columns = result.rows.map(r => r.column_name);
+    
+    // Expected columns for current schema
+    const expectedColumns = ['id', 'email', 'password_hash', 'role', 'is_active', 'last_login', 'created_at', 'updated_at'];
+    
+    // If schema doesn't match, drop dependent tables and recreate
+    if (columns.length !== expectedColumns.length || !expectedColumns.every((col, idx) => columns[idx] === col)) {
+      console.log("Detected users table schema mismatch, dropping and recreating tables...");
+      // Drop tables in correct order to respect foreign keys
+      await client.query(`DROP TABLE IF EXISTS task_updates CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS tasks CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS leave_requests CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS attendance CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS activity_logs CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS timer_sessions CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS notifications CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS employees CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS users CASCADE`);
+    }
+  } catch (error) {
+    console.log("Users schema check passed (table doesn't exist yet)");
   }
 };
 
@@ -326,6 +360,25 @@ const createTables = async (client) => {
   `);
 
   await client.query(`
+    CREATE TABLE IF NOT EXISTS reports (
+      id SERIAL PRIMARY KEY,
+      report_id VARCHAR(50) UNIQUE NOT NULL,
+      employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
+      employee_name VARCHAR(255) NOT NULL,
+      department VARCHAR(100),
+      title VARCHAR(255) NOT NULL,
+      description TEXT NOT NULL,
+      report_type VARCHAR(100) CHECK (report_type IN ('Issue', 'Complaint', 'Feedback', 'Suggestion', 'Other')),
+      priority VARCHAR(20) CHECK (priority IN ('Low', 'Medium', 'High', 'Urgent')) DEFAULT 'Medium',
+      attachment VARCHAR(500),
+      status VARCHAR(50) CHECK (status IN ('Pending', 'In Review', 'Resolved', 'Rejected')) DEFAULT 'Pending',
+      admin_remarks TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await client.query(`
     CREATE TABLE IF NOT EXISTS attendance_logs (
       id SERIAL PRIMARY KEY,
       attendance_id INTEGER REFERENCES attendance(id) ON DELETE CASCADE,
@@ -344,6 +397,10 @@ const createTables = async (client) => {
   await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_logs_employee ON attendance_logs(employee_id)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_logs_date ON attendance_logs(attendance_date)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_employee_date ON attendance(employee_id, date)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_employee ON reports(employee_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_department ON reports(department)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports(created_at)`);
 
   await migrateAttendanceSchema(client);
   await migrateLeaveRequestsSchema(client);

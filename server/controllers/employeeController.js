@@ -26,9 +26,9 @@ const getEmployees = async (req, res) => {
 
 const createEmployee = async (req, res) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
-    if (!email || !password || !firstName || !lastName) {
-      return res.status(400).json({ success: false, message: "Email, password, first name and last name are required" });
+    const { email, password, firstName, lastName, employeeCode, department } = req.body;
+    if (!email || !password || !firstName || !lastName || !employeeCode) {
+      return res.status(400).json({ success: false, message: "Email, password, first name, last name and employee ID are required" });
     }
 
     const existingUser = await User.findByEmail(email);
@@ -36,8 +36,15 @@ const createEmployee = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email already exists" });
     }
 
-    const user = await User.create({ email, password, role: "employee" });
+    const existingEmployee = await Employee.findByEmployeeCode(employeeCode);
+    if (existingEmployee) {
+      return res.status(400).json({ success: false, message: "Employee ID already exists" });
+    }
+
+    const role = department === "Management" ? "admin" : "employee";
+    const user = await User.create({ email, password, role });
     const employee = await Employee.create(req.body, user.id);
+    const fullEmployee = await Employee.findById(employee.id);
 
     try {
       await sendWelcomeEmail(email, firstName, password);
@@ -53,9 +60,13 @@ const createEmployee = async (req, res) => {
       );
     }
 
-    res.status(201).json({ success: true, data: employee });
+    res.status(201).json({ success: true, data: fullEmployee });
   } catch (error) {
     console.error(error);
+    if (error.code === "23505" || error.message?.includes("unique constraint")) {
+      const isCode = error.detail?.includes("employee_code") || error.message?.includes("employee_code");
+      return res.status(400).json({ success: false, message: isCode ? "Employee ID already exists" : "Email already exists" });
+    }
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -67,10 +78,30 @@ const updateEmployee = async (req, res) => {
       return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
+    if (req.body.employeeCode && req.body.employeeCode !== employee.employee_code) {
+      const existingEmployee = await Employee.findByEmployeeCode(req.body.employeeCode);
+      if (existingEmployee) {
+        return res.status(400).json({ success: false, message: "Employee ID already exists" });
+      }
+    }
+
+    const { department } = req.body;
+    if (department !== undefined) {
+      const newRole = department === "Management" ? "admin" : "employee";
+      await pool.query(
+        "UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+        [newRole, employee.user_id]
+      );
+    }
+
     const updatedEmployee = await Employee.update(req.params.id, req.body);
     res.json({ success: true, data: updatedEmployee });
   } catch (error) {
     console.error(error);
+    if (error.code === "23505" || error.message?.includes("unique constraint")) {
+      const isCode = error.detail?.includes("employee_code") || error.message?.includes("employee_code");
+      return res.status(400).json({ success: false, message: isCode ? "Employee ID already exists" : "Email already exists" });
+    }
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -144,6 +175,44 @@ const getEmployeeStats = async (req, res) => {
   }
 };
 
+const toggleEmployeeStatus = async (req, res) => {
+  try {
+    const employeeId = req.params.id;
+
+    if (!employeeId || isNaN(parseInt(employeeId, 10))) {
+      return res.status(400).json({ success: false, message: "Valid employee ID is required" });
+    }
+
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    const newStatus = !employee.is_active;
+    await User.updateIsActive(employee.user_id, newStatus);
+
+    const updatedEmployee = await Employee.findById(employeeId);
+
+    if (req.user?.employee_id) {
+      await pool.query(
+        `INSERT INTO activity_logs (employee_id, activity_type, description, ip_address)
+         VALUES ($1, $2, $3, $4)`,
+        [
+          req.user.employee_id,
+          "toggle_employee_status",
+          `Changed employee ${employee.first_name} ${employee.last_name} status to ${newStatus ? "Active" : "Inactive"}`,
+          req.ip
+        ]
+      );
+    }
+
+    return res.json({ success: true, data: updatedEmployee });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 module.exports = {
   getEmployees,
   createEmployee,
@@ -152,5 +221,6 @@ module.exports = {
   getEmployeeById,
   getProfile,
   updateProfile,
-  getEmployeeStats
+  getEmployeeStats,
+  toggleEmployeeStatus
 };

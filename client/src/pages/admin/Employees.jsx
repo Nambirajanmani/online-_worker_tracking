@@ -6,10 +6,13 @@ import {
   createEmployee,
   deleteEmployee,
   fetchEmployees,
-  updateEmployee
+  updateEmployee,
+  toggleEmployeeStatus
 } from "../../store/slices/employeeSlice";
+import { fetchTaskStats as fetchStats } from "../../store/slices/taskSlice";
 
 const emptyForm = {
+  employeeCode: "",
   firstName: "",
   lastName: "",
   email: "",
@@ -34,7 +37,7 @@ const Employees = () => {
   }, [dispatch]);
 
   const filteredEmployees = employees.filter((employee) =>
-    `${employee.first_name || ""} ${employee.last_name || ""} ${employee.email || ""} ${employee.department || ""}`
+    `${employee.first_name || ""} ${employee.last_name || ""} ${employee.email || ""} ${employee.department || ""} ${employee.employee_code || ""}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -56,6 +59,7 @@ const Employees = () => {
   const handleEdit = (employee) => {
     setEditingEmployee(employee);
     setFormData({
+      employeeCode: employee.employee_code || "",
       firstName: employee.first_name || "",
       lastName: employee.last_name || "",
       email: employee.email || "",
@@ -72,6 +76,18 @@ const Employees = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this employee?")) {
       await dispatch(deleteEmployee(id));
+    }
+  };
+
+  const handleToggleStatus = async (employee) => {
+    const action = employee.is_active ? "deactivate" : "activate";
+    const confirmed = window.confirm(`Are you sure you want to ${action} this employee?`);
+
+    if (confirmed) {
+      const result = await dispatch(toggleEmployeeStatus(employee));
+      if (!result.type.endsWith("/rejected")) {
+        dispatch(fetchStats());
+      }
     }
   };
 
@@ -102,7 +118,7 @@ const Employees = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by name, email, or department"
+                placeholder="Search by name, email, or employee ID"
                 className="input-field pl-11"
               />
             </div>
@@ -117,7 +133,7 @@ const Employees = () => {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  {["Employee", "Department", "Position", "Email", "Status", "Actions"].map((heading) => (
+                  {["Employee", "Employee ID", "Department", "Position", "Email", "Status", "Actions"].map((heading) => (
                     <th
                       key={heading}
                       className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.15em] text-slate-500"
@@ -130,7 +146,7 @@ const Employees = () => {
               <tbody className="divide-y divide-slate-200">
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-10 text-center">
+                    <td colSpan="7" className="px-6 py-10 text-center">
                       <div className="spinner mx-auto" />
                     </td>
                   </tr>
@@ -151,17 +167,20 @@ const Employees = () => {
                           </div>
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{employee.employee_code || "N/A"}</td>
                       <td className="px-6 py-4 text-sm text-slate-600">{employee.department || "N/A"}</td>
                       <td className="px-6 py-4 text-sm text-slate-600">{employee.position || "N/A"}</td>
                       <td className="px-6 py-4 text-sm text-slate-600">{employee.email}</td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(employee)}
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold transition-colors hover:opacity-80 ${
                             employee.is_active ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
                           }`}
                         >
                           {employee.is_active ? "Active" : "Inactive"}
-                        </span>
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -177,7 +196,7 @@ const Employees = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-10 text-center text-slate-500">
+                    <td colSpan="7" className="px-6 py-10 text-center text-slate-500">
                       No employees found.
                     </td>
                   </tr>
@@ -196,6 +215,7 @@ const Employees = () => {
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {[
+                    ["Employee ID", "employeeCode", "text"],
                     ["First Name", "firstName", "text"],
                     ["Last Name", "lastName", "text"],
                     ["Email", "email", "email"],
@@ -209,7 +229,7 @@ const Employees = () => {
                       <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
                       <input
                         type={type}
-                        required={field !== "password" ? ["firstName", "lastName", "email"].includes(field) : !editingEmployee}
+                        required={field === "employeeCode" || field === "firstName" || field === "lastName" || field === "email" ? true : field !== "password"}
                         value={formData[field]}
                         onChange={(event) =>
                           setFormData((current) => ({ ...current, [field]: event.target.value }))
@@ -228,6 +248,7 @@ const Employees = () => {
                       className="input-field"
                     >
                       <option value="">Select department</option>
+                      <option value="Management">Management</option>
                       <option value="IT">IT</option>
                       <option value="HR">HR</option>
                       <option value="Sales">Sales</option>

@@ -36,7 +36,10 @@ const protect = async (req, res, next) => {
 };
 
 const adminOnly = (req, res, next) => {
-  if (req.user?.role === "admin") {
+  const isSystemAdmin = req.user?.email === "admin@example.com";
+  const isManagement = req.user?.department === "Management";
+
+  if (req.user?.role === "admin" && (isManagement || isSystemAdmin)) {
     return next();
   }
   return res.status(403).json({ success: false, message: "Access denied. Admin only." });
