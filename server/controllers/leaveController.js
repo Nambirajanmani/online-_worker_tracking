@@ -467,6 +467,90 @@ const cancelLeaveRequest = async (req, res) => {
   }
 };
 
+const adminUpdateLeaveRequest = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const existing = await client.query("SELECT * FROM leave_requests WHERE id = $1", [req.params.id]);
+    if (!existing.rows.length) {
+      return res.status(404).json({ success: false, message: "Leave request not found" });
+    }
+
+    const leaveType = (req.body.leave_type || existing.rows[0].leave_type).toLowerCase().trim();
+    const startRaw = req.body.from_date || req.body.start_date || existing.rows[0].start_date;
+    const endRaw = req.body.to_date || req.body.end_date || existing.rows[0].end_date;
+    const reason = (req.body.reason ?? existing.rows[0].reason).toString().trim();
+    const status = (req.body.status || existing.rows[0].status).toLowerCase().trim();
+
+    if (!LEAVE_TYPES.includes(leaveType)) {
+      return res.status(400).json({ success: false, message: "Invalid leave type" });
+    }
+
+    const start = moment(startRaw, "YYYY-MM-DD", true);
+    const end = moment(endRaw, "YYYY-MM-DD", true);
+    if (!start.isValid() || !end.isValid()) {
+      return res.status(400).json({ success: false, message: "Invalid date format" });
+    }
+    const startDate = start.format("YYYY-MM-DD");
+    const endDate = end.format("YYYY-MM-DD");
+    const totalDays = end.diff(start, "days") + 1;
+
+    let newAttachment = null;
+    if (req.files?.attachment || req.files?.certificate || req.files?.file) {
+      try {
+        newAttachment = await saveLeaveAttachment(req);
+      } catch (fileErr) {
+        return res.status(400).json({ success: false, message: "Failed to save attachment" });
+      }
+    }
+
+    const result = await client.query(
+      `UPDATE leave_requests
+       SET leave_type = $1, start_date = $2, end_date = $3, total_days = $4,
+           reason = $5, status = $6, attachment_url = COALESCE($7, attachment_url), updated_at = CURRENT_TIMESTAMP
+       WHERE id = $8
+       RETURNING *`,
+      [leaveType, startDate, endDate, totalDays, reason, status, newAttachment, req.params.id]
+    );
+
+    const full = await client.query(
+      `SELECT l.*, e.employee_code, e.first_name, e.last_name
+       FROM leave_requests l
+       JOIN employees e ON l.employee_id = e.id
+       WHERE l.id = $1`,
+      [req.params.id]
+    );
+    const shaped = shapeLeaveRow(full.rows[0]);
+    emitLeave("leave:updated", { leave: shaped });
+    await emitToEmployeeUser(shaped.employee_id, "leave:sync", { leave: shaped });
+
+    res.json({ success: true, data: shaped });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  } finally {
+    client.release();
+  }
+};
+
+const deleteLeaveRequest = async (req, res) => {
+  try {
+    const existing = await pool.query("SELECT * FROM leave_requests WHERE id = $1", [req.params.id]);
+    if (!existing.rows.length) {
+      return res.status(404).json({ success: false, message: "Leave request not found" });
+    }
+
+    await pool.query("DELETE FROM leave_requests WHERE id = $1", [req.params.id]);
+    
+    emitLeave("leave:updated", { leave: { id: req.params.id, deleted: true } });
+    await emitToEmployeeUser(existing.rows[0].employee_id, "leave:sync", { leave: null });
+    
+    res.json({ success: true, message: "Leave request deleted" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 module.exports = {
   getLeaveRequests,
   getLeaveStats,
@@ -474,5 +558,7 @@ module.exports = {
   createLeaveRequest,
   updateEmployeeLeaveRequest,
   updateLeaveStatus,
-  cancelLeaveRequest
+  cancelLeaveRequest,
+  adminUpdateLeaveRequest,
+  deleteLeaveRequest
 };

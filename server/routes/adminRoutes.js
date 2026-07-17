@@ -19,7 +19,9 @@ const {
 const {
   getLeaveRequests,
   getLeaveStats,
-  updateLeaveStatus
+  updateLeaveStatus,
+  adminUpdateLeaveRequest,
+  deleteLeaveRequest
 } = require("../controllers/leaveController");
 const { getTasks, getTaskStats } = require("../controllers/taskController");
 const { getProjects } = require("../controllers/projectController");
@@ -38,6 +40,8 @@ router.get("/attendance/today", protect, adminOnly, getTodayAttendance);
 router.get("/leaves", protect, adminOnly, getLeaveRequests);
 router.get("/leaves/stats", protect, adminOnly, getLeaveStats);
 router.put("/leaves/:id", protect, adminOnly, updateLeaveStatus);
+router.put("/leaves/:id/edit", protect, adminOnly, adminUpdateLeaveRequest);
+router.delete("/leaves/:id", protect, adminOnly, deleteLeaveRequest);
 router.get("/tasks", protect, adminOnly, getTasks);
 router.get("/tasks/stats", protect, adminOnly, getTaskStats);
 router.get("/projects", protect, adminOnly, getProjects);
