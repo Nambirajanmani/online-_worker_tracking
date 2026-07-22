@@ -140,8 +140,36 @@ class Employee {
     if (!employee) {
       return false;
     }
-    await pool.query("DELETE FROM users WHERE id = $1", [employee.user_id]);
-    return true;
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // 1. Delete notifications referencing the user
+      await client.query("DELETE FROM notifications WHERE user_id = $1", [employee.user_id]);
+
+      // 2. Delete references to this employee in non-cascading tables
+      await client.query("DELETE FROM time_entries WHERE employee_id = $1", [id]);
+      await client.query("DELETE FROM leave_requests WHERE employee_id = $1", [id]);
+      await client.query("DELETE FROM activity_logs WHERE employee_id = $1", [id]);
+
+      // 3. Nullify references where the employee is an author/manager/approver
+      await client.query("UPDATE projects SET created_by = NULL WHERE created_by = $1", [id]);
+      await client.query("UPDATE tasks SET assigned_by = NULL WHERE assigned_by = $1", [id]);
+      await client.query("UPDATE leave_requests SET approved_by = NULL WHERE approved_by = $1", [id]);
+      await client.query("UPDATE employees SET reporting_manager = NULL WHERE reporting_manager = $1", [id]);
+
+      // 4. Delete the user (this cascades to employees, attendance, tasks, reports, etc.)
+      await client.query("DELETE FROM users WHERE id = $1", [employee.user_id]);
+
+      await client.query("COMMIT");
+      return true;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 

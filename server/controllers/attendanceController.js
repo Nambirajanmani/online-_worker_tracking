@@ -438,19 +438,61 @@ const getTimeSummary = async (req, res) => {
         : moment().startOf("week").format("YYYY-MM-DD");
 
     const result = await pool.query(
-      `SELECT COALESCE(SUM(duration), 0) AS total_hours
-       FROM time_entries
-       WHERE employee_id = $1 AND start_time::date >= $2`,
+      `SELECT COALESCE(SUM(total_duration), 0) AS total_seconds
+       FROM timer_sessions
+       WHERE employee_id = $1 AND start_time::date >= $2 AND status IN ('completed', 'stopped')`,
       [employeeId, startDate]
     );
+
+    const totalSeconds = Number(result.rows[0]?.total_seconds || 0);
+    const totalHours = Number((totalSeconds / 3600).toFixed(2));
 
     res.json({
       success: true,
       data: {
         period,
-        totalHours: Number(result.rows[0]?.total_hours || 0)
+        totalHours
       }
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const getWeeklyAttendance = async (req, res) => {
+  try {
+    const weekStart = moment().startOf("isoWeek"); // Monday
+    const days = [];
+    for (let i = 0; i < 5; i++) {
+      days.push(weekStart.clone().add(i, "days").format("YYYY-MM-DD"));
+    }
+
+    const result = await pool.query(
+      `SELECT
+         a.date::text,
+         COUNT(CASE WHEN a.clock_in_time IS NOT NULL THEN 1 END)::int AS present,
+         COUNT(CASE WHEN a.clock_in_time IS NULL THEN 1 END)::int AS absent,
+         COUNT(CASE WHEN a.status = 'late' THEN 1 END)::int AS late
+       FROM attendance a
+       WHERE a.date = ANY($1::date[])
+       GROUP BY a.date
+       ORDER BY a.date`,
+      [days]
+    );
+
+    const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    const data = days.map((date, idx) => {
+      const row = result.rows.find((r) => r.date === date);
+      return {
+        day: dayLabels[idx],
+        present: row?.present || 0,
+        absent: row?.absent || 0,
+        late: row?.late || 0
+      };
+    });
+
+    res.json({ success: true, data });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -465,5 +507,6 @@ module.exports = {
   exportAttendanceReport,
   getAttendanceHistory,
   getAttendanceSummary,
+  getWeeklyAttendance,
   getTimeSummary
 };

@@ -14,7 +14,8 @@ const {
   getAttendanceSummary,
   getTodayAttendance,
   getAdminAttendanceTracking,
-  exportAttendanceReport
+  exportAttendanceReport,
+  getWeeklyAttendance
 } = require("../controllers/attendanceController");
 const {
   getLeaveRequests,
@@ -36,6 +37,7 @@ router.get("/attendance", protect, adminOnly, getAttendanceHistory);
 router.get("/attendance/tracking", protect, adminOnly, getAdminAttendanceTracking);
 router.get("/attendance/export", protect, adminOnly, exportAttendanceReport);
 router.get("/attendance/summary", protect, adminOnly, getAttendanceSummary);
+router.get("/attendance/weekly", protect, adminOnly, getWeeklyAttendance);
 router.get("/attendance/today", protect, adminOnly, getTodayAttendance);
 router.get("/leaves", protect, adminOnly, getLeaveRequests);
 router.get("/leaves/stats", protect, adminOnly, getLeaveStats);

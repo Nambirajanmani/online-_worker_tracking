@@ -91,6 +91,15 @@ class TimerSession {
     );
     return result.rows[0];
   }
+
+  static async delete(id) {
+    await pool.query(`DELETE FROM activity_logs WHERE session_id = $1`, [id]);
+    const result = await pool.query(
+      `DELETE FROM timer_sessions WHERE id = $1 RETURNING *`,
+      [id]
+    );
+    return result.rows[0];
+  }
 }
 
 module.exports = TimerSession;

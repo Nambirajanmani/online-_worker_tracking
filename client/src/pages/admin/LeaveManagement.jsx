@@ -4,7 +4,7 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import toast from "react-hot-toast";
 import { FaSearch, FaSync } from "react-icons/fa";
-import { FiCheck, FiX, FiEye, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiCheck, FiX, FiEye, FiTrash2 } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { api } from "../../lib/api";
@@ -23,18 +23,21 @@ const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "cancelled", label: "Cancelled" }
+  { value: "rejected", label: "Rejected" }
 ];
 
 const STATUS_STYLES = {
   pending: "bg-amber-100 text-amber-800",
   approved: "bg-emerald-100 text-emerald-800",
-  rejected: "bg-rose-100 text-rose-800",
-  cancelled: "bg-slate-200 text-slate-600"
+  rejected: "bg-rose-100 text-rose-800"
 };
 
 const uploadOrigin = () => (process.env.REACT_APP_API_URL || "").replace(/\/api\/?$/, "") || "";
+
+const formatDateOnly = (dateStr) => {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString();
+};
 
 const LeaveManagement = () => {
   const { token } = useSelector((state) => state.auth);
@@ -56,21 +59,13 @@ const LeaveManagement = () => {
   const [appliedTo, setAppliedTo] = useState("");
   
   const [actionRow, setActionRow] = useState(null);
-  const [actionType, setActionType] = useState(null); // 'approve', 'reject', 'view', 'edit'
-  
+  const [actionType, setActionType] = useState(null); // 'approve', 'reject', 'view'
+
   // For Approve/Reject
   const [adminRemark, setAdminRemark] = useState("");
-  
-  // For Edit
-  const [editForm, setEditForm] = useState({
-    leave_type: "",
-    from_date: "",
-    to_date: "",
-    reason: "",
-    status: ""
-  });
-  
+
   const [submitting, setSubmitting] = useState(false);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -143,21 +138,6 @@ const LeaveManagement = () => {
     }
   };
 
-  const submitEditAction = async () => {
-    if (!actionRow) return;
-    setSubmitting(true);
-    try {
-      await api.put(`/admin/leaves/${actionRow.id}/edit`, editForm);
-      toast.success("Leave request updated");
-      setActionRow(null);
-      await fetchAll();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Update failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleDelete = async (row) => {
     if (!window.confirm("Are you sure you want to delete this leave request?")) return;
     try {
@@ -174,14 +154,20 @@ const LeaveManagement = () => {
     setActionType(type);
     if (type === "approved" || type === "rejected") {
       setAdminRemark(row.admin_remark || "");
-    } else if (type === "edit") {
-      setEditForm({
-        leave_type: row.leave_type || "casual",
-        from_date: row.from_date || row.start_date || "",
-        to_date: row.to_date || row.end_date || "",
-        reason: row.reason || "",
-        status: row.status || "pending"
-      });
+    }
+  };
+
+  const handleInlineStatusChange = async (row, newStatus) => {
+    if (newStatus === row.status) return;
+    setUpdatingStatusId(row.id);
+    try {
+      await api.put(`/admin/leaves/${row.id}`, { status: newStatus });
+      toast.success(`Status updated to ${newStatus}`);
+      await fetchAll();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Status update failed");
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -215,14 +201,17 @@ const LeaveManagement = () => {
 
         <div className="mb-6 grid grid-cols-1 gap-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 lg:grid-cols-3 xl:grid-cols-6">
           <div className="relative lg:col-span-2">
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name or employee ID"
-              className="input-field pl-10"
-            />
+            <label className="mb-1 block text-xs font-medium text-slate-600">Search</label>
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name or employee ID"
+                className="input-field pl-10"
+              />
+            </div>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Leave type</label>
@@ -293,21 +282,27 @@ const LeaveManagement = () => {
                           <div className="text-xs text-slate-500">{row.employee_code}</div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-3">{LEAVE_TYPES.find((t) => t.value === row.leave_type)?.label || row.leave_type}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{row.from_date}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{row.to_date}</td>
+                        <td className="whitespace-nowrap px-3 py-3">{formatDateOnly(row.from_date)}</td>
+                        <td className="whitespace-nowrap px-3 py-3">{formatDateOnly(row.to_date)}</td>
                         <td className="whitespace-nowrap px-3 py-3">{row.total_days}</td>
                         <td className="whitespace-nowrap px-3 py-3">
-                          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_STYLES[row.status] || ""}`}>
-                            {row.status}
-                          </span>
+                          <select
+                            value={row.status}
+                            disabled={updatingStatusId === row.id}
+                            onChange={(e) => handleInlineStatusChange(row, e.target.value)}
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400 ${
+                              STATUS_STYLES[row.status] || "bg-gray-100 text-gray-700"
+                            } ${updatingStatusId === row.id ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            {STATUS_OPTIONS.filter((o) => o.value !== "").map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="whitespace-nowrap px-3 py-3">
                           <div className="flex items-center gap-3">
                             <button title="View Details" type="button" className="text-emerald-600 hover:text-emerald-700" onClick={() => openAction(row, "view")}>
                               <FiEye size={18} />
-                            </button>
-                            <button title="Edit Request" type="button" className="text-sky-600 hover:text-sky-700" onClick={() => openAction(row, "edit")}>
-                              <FiEdit2 size={18} />
                             </button>
                             {row.status === "pending" && (
                               <>
@@ -353,7 +348,7 @@ const LeaveManagement = () => {
                 {actionType === "approved" ? "Approve leave" : "Reject leave"}
               </h3>
               <p className="mt-2 text-sm text-slate-600">
-                {actionRow.employee_name} · {actionRow.from_date} → {actionRow.to_date}
+                {actionRow.employee_name} · {formatDateOnly(actionRow.from_date)} → {formatDateOnly(actionRow.to_date)}
               </p>
               <label className="mt-4 block text-sm font-medium text-slate-700">Admin remark (optional)</label>
               <textarea
@@ -391,8 +386,8 @@ const LeaveManagement = () => {
                   ["Employee", `${actionRow.employee_name} (${actionRow.employee_code})`],
                   ["Type", LEAVE_TYPES.find(t => t.value === actionRow.leave_type)?.label || actionRow.leave_type],
                   ["Status", <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_STYLES[actionRow.status] || ""}`}>{actionRow.status}</span>],
-                  ["From", actionRow.from_date],
-                  ["To", actionRow.to_date],
+                  ["From", formatDateOnly(actionRow.from_date)],
+                  ["To", formatDateOnly(actionRow.to_date)],
                   ["Total Days", actionRow.total_days],
                   ["Applied At", actionRow.applied_at ? format(parseISO(actionRow.applied_at), "PPP p") : "—"]
                 ].map(([label, value]) => (
@@ -433,77 +428,7 @@ const LeaveManagement = () => {
           </div>
         )}
 
-        {/* Edit Details Modal */}
-        {actionRow && actionType === "edit" && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-            <div className="w-full max-w-2xl rounded-[1.5rem] bg-white p-6 shadow-xl">
-              <h3 className="text-2xl font-semibold text-slate-900 mb-4">Edit Leave Request</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
-                    <select
-                      value={editForm.leave_type}
-                      onChange={(e) => setEditForm(f => ({ ...f, leave_type: e.target.value }))}
-                      className="input-field"
-                    >
-                      {LEAVE_TYPES.filter(t => t.value !== "").map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Status</label>
-                    <select
-                      value={editForm.status}
-                      onChange={(e) => setEditForm(f => ({ ...f, status: e.target.value }))}
-                      className="input-field"
-                    >
-                      {STATUS_OPTIONS.filter(t => t.value !== "").map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">From Date</label>
-                    <input
-                      type="date"
-                      value={editForm.from_date}
-                      onChange={(e) => setEditForm(f => ({ ...f, from_date: e.target.value }))}
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">To Date</label>
-                    <input
-                      type="date"
-                      value={editForm.to_date}
-                      onChange={(e) => setEditForm(f => ({ ...f, to_date: e.target.value }))}
-                      className="input-field"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">Reason</label>
-                  <textarea
-                    rows={3}
-                    value={editForm.reason}
-                    onChange={(e) => setEditForm(f => ({ ...f, reason: e.target.value }))}
-                    className="input-field"
-                  />
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button type="button" className="btn-secondary" onClick={() => setActionRow(null)} disabled={submitting}>
-                  Cancel
-                </button>
-                <button type="button" className="btn-primary" onClick={submitEditAction} disabled={submitting}>
-                  {submitting ? "Saving…" : "Update Request"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+
 
       </div>
     </AdminLayout>

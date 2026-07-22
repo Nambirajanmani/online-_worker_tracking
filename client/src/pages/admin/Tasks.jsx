@@ -10,7 +10,7 @@ import {
 } from "../../store/slices/taskSlice";
 import { api } from "../../lib/api";
 import toast from "react-hot-toast";
-import { FiPlus, FiSearch, FiTrash2, FiEdit2, FiEye } from "react-icons/fi";
+import { FiPlus, FiSearch, FiTrash2, FiEdit2, FiEye, FiUser, FiCalendar, FiFlag, FiActivity, FiAlignLeft, FiX } from "react-icons/fi";
 
 const emptyForm = {
   employee_id: "",
@@ -128,9 +128,24 @@ const Tasks = () => {
     }
   };
 
-  // Filter tasks
+  // Determine if a task is overdue: due_date is strictly before today and not completed
+  const isOverdue = (task) => {
+    if (!task.due_date || task.status === "completed") return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(task.due_date);
+    due.setHours(0, 0, 0, 0);
+    return due < today;
+  };
+
+  // Filter tasks (including overdue pseudo-status)
   const filteredTasks = tasks.filter((task) => {
-    const matchStatus = !filters.status || task.status === filters.status;
+    let matchStatus;
+    if (filters.status === "overdue") {
+      matchStatus = isOverdue(task);
+    } else {
+      matchStatus = !filters.status || task.status === filters.status;
+    }
     const matchPriority = !filters.priority || task.priority === filters.priority;
     const matchSearch =
       !filters.search ||
@@ -138,6 +153,9 @@ const Tasks = () => {
       task.employee_name?.toLowerCase().includes(filters.search.toLowerCase());
     return matchStatus && matchPriority && matchSearch;
   });
+
+  // Separate overdue tasks (for the dedicated Overdue box)
+  const overdueTasks = tasks.filter((task) => isOverdue(task));
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -166,13 +184,12 @@ const Tasks = () => {
     <AdminLayout>
       <div className="p-6 space-y-6">
         {/* Dashboard Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {[
             { label: "Total Tasks", value: stats?.total || 0, color: "bg-blue-500" },
             { label: "Pending", value: stats?.pending || 0, color: "bg-orange-500" },
             { label: "In Progress", value: stats?.in_progress || 0, color: "bg-purple-500" },
             { label: "Completed", value: stats?.completed || 0, color: "bg-green-500" },
-            { label: "On Hold", value: stats?.on_hold || 0, color: "bg-gray-500" },
             { label: "Overdue", value: stats?.overdue || 0, color: "bg-red-500" },
           ].map((stat) => (
             <div key={stat.label} className={`${stat.color} text-white p-6 rounded-lg shadow`}>
@@ -323,7 +340,7 @@ const Tasks = () => {
               <option value="pending">Pending</option>
               <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
-              <option value="on-hold">On Hold</option>
+              <option value="overdue">🔴 Overdue</option>
             </select>
 
             <select
@@ -346,6 +363,53 @@ const Tasks = () => {
             </button>
           </div>
 
+          {/* Overdue Tasks Warning Box */}
+          {overdueTasks.length > 0 && filters.status !== "overdue" && (
+            <div className="mb-6 border border-red-300 bg-red-50 rounded-lg overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 bg-red-500 text-white">
+                <span className="text-lg">⚠️</span>
+                <h3 className="font-bold text-sm uppercase tracking-wide">
+                  Overdue Tasks — {overdueTasks.length} task{overdueTasks.length > 1 ? "s" : ""} past due date
+                </h3>
+                <button
+                  onClick={() => setFilters({ ...filters, status: "overdue" })}
+                  className="ml-auto text-xs bg-white text-red-600 font-semibold px-3 py-1 rounded hover:bg-red-100 transition"
+                >
+                  View All Overdue
+                </button>
+              </div>
+              <div className="divide-y divide-red-200">
+                {overdueTasks.slice(0, 5).map((task) => (
+                  <div key={task.id} className="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="font-semibold text-red-800 text-sm">{task.task_title}</p>
+                      <p className="text-xs text-red-600">
+                        {task.employee_name} · Due: {formatDate(task.due_date)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                        {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                      </span>
+                      <button
+                        title="Edit"
+                        onClick={() => handleEdit(task)}
+                        className="text-sky-600 hover:text-sky-700 transition-colors"
+                      >
+                        <FiEdit2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {overdueTasks.length > 5 && (
+                  <p className="text-xs text-center text-red-500 py-2">
+                    +{overdueTasks.length - 5} more overdue — use the filter to see all
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Tasks Table */}
           {loading ? (
             <p className="text-center py-4">Loading tasks...</p>
@@ -365,7 +429,14 @@ const Tasks = () => {
                 </thead>
                 <tbody>
                   {filteredTasks.map((task) => (
-                    <tr key={task.id} className="border-b hover:bg-gray-50 transition">
+                    <tr
+                      key={task.id}
+                      className={`border-b transition ${
+                        isOverdue(task)
+                          ? "bg-red-50 hover:bg-red-100 border-red-200"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
                       <td className="px-4 py-3">
                         <p className="font-medium">{task.task_title}</p>
                         <p className="text-sm text-gray-600">
@@ -379,9 +450,16 @@ const Tasks = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-3 py-1 rounded text-xs font-medium ${getStatusColor(task.status)}`}>
-                          {task.status.replace("-", " ").charAt(0).toUpperCase() + task.status.slice(1)}
-                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          <span className={`px-3 py-1 rounded text-xs font-medium ${getStatusColor(task.status)}`}>
+                            {task.status.replace("-", " ").charAt(0).toUpperCase() + task.status.slice(1)}
+                          </span>
+                          {isOverdue(task) && (
+                            <span className="px-2 py-1 rounded text-xs font-bold bg-red-600 text-white animate-pulse">
+                              OVERDUE
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">{formatDate(task.start_date)}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{formatDate(task.due_date)}</td>
@@ -426,62 +504,100 @@ const Tasks = () => {
 
       {/* View Task Modal */}
       {viewingTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-          <div className="w-full max-w-2xl rounded-[1.5rem] bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-slate-900">Task Details</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-all">
+          <div className="w-full max-w-2xl rounded-3xl bg-slate-900 shadow-2xl overflow-hidden ring-1 ring-slate-800">
+            {/* Header */}
+            <div className="bg-slate-800 px-8 py-6 relative border-b border-slate-700">
               <button
                 type="button"
-                className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+                className="absolute right-6 top-6 text-slate-400 hover:text-white transition-colors bg-slate-700 hover:bg-slate-600 p-2 rounded-full"
                 onClick={() => setViewingTask(null)}
               >
-                &times;
+                <FiX size={20} />
               </button>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Task Title</p>
-              <p className="text-lg font-semibold text-slate-900">{viewingTask.task_title}</p>
-            </div>
-
-            {viewingTask.task_description && (
-              <div className="mb-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Description</p>
-                <p className="text-sm text-slate-700 whitespace-pre-wrap">{viewingTask.task_description}</p>
+              <div className="flex items-center gap-3 text-slate-400 mb-2">
+                <FiActivity size={18} />
+                <span className="text-sm font-semibold uppercase tracking-wider">Task Details</span>
               </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                ["Employee", viewingTask.employee_name || "N/A"],
-                ["Priority",
-                  <span className={`px-3 py-1 rounded text-xs font-medium ${getPriorityColor(viewingTask.priority)}`}>
-                    {viewingTask.priority?.charAt(0).toUpperCase() + viewingTask.priority?.slice(1)}
-                  </span>
-                ],
-                ["Status",
-                  <span className={`px-3 py-1 rounded text-xs font-medium ${getStatusColor(viewingTask.status)}`}>
-                    {viewingTask.status?.replace("-", " ").charAt(0).toUpperCase() + viewingTask.status?.slice(1)}
-                  </span>
-                ],
-                ["Start Date", formatDate(viewingTask.start_date)],
-                ["Due Date", formatDate(viewingTask.due_date)],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
-                  <div className="text-sm font-medium text-slate-800">{value}</div>
-                </div>
-              ))}
+              <h2 className="text-2xl font-bold text-white pr-10">{viewingTask.task_title}</h2>
             </div>
 
-            <div className="flex justify-end mt-6">
-              <button
-                type="button"
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-                onClick={() => setViewingTask(null)}
-              >
-                Close
-              </button>
+            <div className="p-8">
+              {viewingTask.task_description && (
+                <div className="mb-8 bg-slate-800/50 rounded-2xl p-5 border border-slate-700">
+                  <div className="flex items-center gap-2 text-slate-400 mb-3">
+                    <FiAlignLeft size={18} />
+                    <h3 className="text-sm font-semibold uppercase tracking-wider">Description</h3>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{viewingTask.task_description}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Employee Card */}
+                <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-sm hover:shadow-md transition-shadow group">
+                  <div className="flex items-center gap-2 text-slate-400 mb-2">
+                    <FiUser className="group-hover:text-blue-400 transition-colors" />
+                    <p className="text-xs font-bold uppercase tracking-wider">Employee</p>
+                  </div>
+                  <p className="text-base font-semibold text-slate-200">{viewingTask.employee_name || "N/A"}</p>
+                </div>
+
+                {/* Priority Card */}
+                <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-sm hover:shadow-md transition-shadow group">
+                  <div className="flex items-center gap-2 text-slate-400 mb-2">
+                    <FiFlag className="group-hover:text-rose-400 transition-colors" />
+                    <p className="text-xs font-bold uppercase tracking-wider">Priority</p>
+                  </div>
+                  <div className="mt-1">
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${getPriorityColor(viewingTask.priority)} ring-1 ring-inset ring-current/20`}>
+                      {viewingTask.priority}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status Card */}
+                <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-sm hover:shadow-md transition-shadow group">
+                  <div className="flex items-center gap-2 text-slate-400 mb-2">
+                    <FiActivity className="group-hover:text-emerald-400 transition-colors" />
+                    <p className="text-xs font-bold uppercase tracking-wider">Status</p>
+                  </div>
+                  <div className="mt-1">
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusColor(viewingTask.status)} ring-1 ring-inset ring-current/20`}>
+                      {viewingTask.status?.replace("-", " ")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dates Card */}
+                <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-sm hover:shadow-md transition-shadow group">
+                  <div className="flex items-center gap-2 text-slate-400 mb-3">
+                    <FiCalendar className="group-hover:text-indigo-400 transition-colors" />
+                    <p className="text-xs font-bold uppercase tracking-wider">Timeline</p>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400">Start Date</span>
+                      <span className="font-semibold text-slate-200">{formatDate(viewingTask.start_date)}</span>
+                    </div>
+                    <div className="h-px bg-slate-700"></div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400">Due Date</span>
+                      <span className="font-semibold text-slate-200">{formatDate(viewingTask.due_date)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end mt-8 pt-6 border-t border-slate-700">
+                <button
+                  type="button"
+                  className="px-6 py-2.5 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-700 transition-colors focus:ring-4 focus:ring-slate-700 border border-slate-600"
+                  onClick={() => setViewingTask(null)}
+                >
+                  Close Details
+                </button>
+              </div>
             </div>
           </div>
         </div>

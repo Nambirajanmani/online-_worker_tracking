@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { FaEye, FaTrash } from "react-icons/fa";
 import EmployeeLayout from "../../components/employee/EmployeeLayout";
 import { api } from "../../lib/api";
 import io from "socket.io-client";
@@ -75,8 +76,9 @@ const TimeTracker = () => {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
-  const [todayLogs, setTodayLogs] = useState([]);
+  const [timeLogs, setTimeLogs] = useState([]);
   const [completedSummary, setCompletedSummary] = useState(null);
+  const [viewingSession, setViewingSession] = useState(null);
 
   const socketRef = useRef(null);
   const timerRef = useRef(null);
@@ -113,7 +115,9 @@ const TimeTracker = () => {
       const res = await api.get("/employee/tasks", {
         headers: getAuthHeaders(),
       });
-      const taskList = res.data.data || res.data.tasks || [];
+      const taskList = (res.data.data || res.data.tasks || []).filter(
+        (task) => String(task.status).toLowerCase() !== "completed"
+      );
       setTasks(taskList);
       if (selectedTaskId) {
         syncSelectedTaskDetails(selectedTaskId, taskList);
@@ -127,7 +131,7 @@ const TimeTracker = () => {
     }
   }, [getAuthHeaders, selectedTaskId, syncSelectedTaskDetails]);
 
-  const fetchTodayLogs = useCallback(async () => {
+  const fetchTimeLogs = useCallback(async () => {
     const employeeId = getEmployeeId();
     if (!employeeId) return;
 
@@ -136,14 +140,12 @@ const TimeTracker = () => {
         headers: getAuthHeaders(),
       });
       const history = res.data.history || [];
-      const todaysSessions = history
-        .filter((session) => isToday(session.start_time))
-        .sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
+      const sortedHistory = history.sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
 
-      setTodayLogs(todaysSessions);
+      setTimeLogs(sortedHistory);
 
-      const latestCompleted = todaysSessions.find((session) =>
-        ["completed", "stopped"].includes(String(session.status || "").toLowerCase())
+      const latestCompleted = sortedHistory.find((session) =>
+        ["completed", "stopped"].includes(String(session.status || "").toLowerCase()) && isToday(session.start_time)
       );
 
       if (latestCompleted) {
@@ -177,7 +179,7 @@ const TimeTracker = () => {
   useEffect(() => {
     fetchTasks();
     fetchActiveTimer();
-    fetchTodayLogs();
+    fetchTimeLogs();
 
     const token = localStorage.getItem("token");
     const socketUrl =
@@ -191,7 +193,7 @@ const TimeTracker = () => {
 
     socketRef.current.on("timer_update", () => {
       fetchActiveTimer();
-      fetchTodayLogs();
+      fetchTimeLogs();
     });
 
     return () => {
@@ -199,7 +201,7 @@ const TimeTracker = () => {
       if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
       if (socketRef.current) socketRef.current.disconnect();
     };
-  }, [fetchActiveTimer, fetchTasks, fetchTodayLogs]);
+  }, [fetchActiveTimer, fetchTasks, fetchTimeLogs]);
 
   useEffect(() => {
     activeTimerRef.current = activeTimer;
@@ -312,7 +314,7 @@ const TimeTracker = () => {
       if (res.data.success) {
         toast.success("Timer started successfully");
         await fetchActiveTimer();
-        await fetchTodayLogs();
+        await fetchTimeLogs();
       }
     } catch (error) {
       const timerFromError = error.response?.data?.active_timer || null;
@@ -330,7 +332,7 @@ const TimeTracker = () => {
       if (res.data.success) {
         toast.success("Timer paused");
         await fetchActiveTimer();
-        await fetchTodayLogs();
+        await fetchTimeLogs();
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to pause timer");
@@ -343,7 +345,7 @@ const TimeTracker = () => {
       if (res.data.success) {
         toast.success("Timer resumed");
         await fetchActiveTimer();
-        await fetchTodayLogs();
+        await fetchTimeLogs();
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to resume timer");
@@ -363,7 +365,7 @@ const TimeTracker = () => {
 
         setCompletedSummary(completedTimer ? buildCompletedSummary(completedTimer) : null);
         if (normalizedCompletedLog) {
-          setTodayLogs((prev) => {
+          setTimeLogs((prev) => {
             const nextLogs = [
               normalizedCompletedLog,
               ...prev.filter((log) => String(log.id) !== String(normalizedCompletedLog.id)),
@@ -380,7 +382,7 @@ const TimeTracker = () => {
         setNotes("");
         toast.success(res.data.message || "Timer stopped successfully");
         await fetchActiveTimer();
-        await fetchTodayLogs();
+        await fetchTimeLogs();
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to stop timer");
@@ -398,16 +400,53 @@ const TimeTracker = () => {
     }
   };
 
+  const handleDeleteSession = async (sessionId) => {
+    if (!window.confirm("Are you sure you want to delete this time log? This action cannot be undone.")) return;
+    
+    try {
+      const res = await api.delete(`/timer/${sessionId}`, { headers: getAuthHeaders() });
+      if (res.data.success) {
+        toast.success("Time log deleted successfully");
+        await fetchTimeLogs();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete time log");
+    }
+  };
+
   const hasActiveTimer = Boolean(activeTimer);
   const runningStatusTone =
     activeTimer?.status === "RUNNING"
       ? "bg-emerald-100 text-emerald-800 ring-emerald-200"
       : "bg-amber-100 text-amber-800 ring-amber-200";
   const totalTrackedToday = formatDuration(
-    todayLogs
-      .filter((session) => ["completed", "stopped"].includes(String(session.status || "").toLowerCase()))
+    timeLogs
+      .filter((session) => isToday(session.start_time) && ["completed", "stopped"].includes(String(session.status || "").toLowerCase()))
       .reduce((sum, session) => sum + Number(session.total_duration || 0), 0)
   );
+
+  const selectedTaskTotalSeconds = timeLogs
+    .filter(log => String(log.task_id) === String(selectedTaskId) && ["completed", "stopped"].includes(String(log.status || "").toLowerCase()))
+    .reduce((sum, log) => sum + Number(log.total_duration || 0), 0);
+  const selectedTaskTotalFormatted = formatDuration(selectedTaskTotalSeconds);
+
+  const taskSummaries = Object.values(
+    timeLogs.reduce((acc, session) => {
+      const status = String(session.status || "").toLowerCase();
+      if (!["completed", "stopped", "running"].includes(status)) return acc;
+
+      const taskId = session.task_id || session.task_title || session.task_name;
+      const taskName = session.task_title || session.task_name || "Untitled task";
+      const duration = Number(session.total_duration || session.active_duration || 0);
+
+      if (!acc[taskId]) {
+        acc[taskId] = { task_name: taskName, total_seconds: 0, session_count: 0 };
+      }
+      acc[taskId].total_seconds += duration;
+      acc[taskId].session_count += 1;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.total_seconds - a.total_seconds);
 
   return (
     <EmployeeLayout>
@@ -522,10 +561,10 @@ const TimeTracker = () => {
                 <p className="text-lg text-gray-600">Loading tasks...</p>
               </div>
             ) : tasks.length === 0 ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-6">
-                <p className="font-medium text-amber-800">No assigned tasks found</p>
-                <p className="mt-1 text-sm text-amber-700">Contact your manager to get tasks assigned</p>
-              </div>
+               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-6">
+                 <p className="font-medium text-amber-800">No assigned tasks found</p>
+                 <p className="mt-1 text-sm text-amber-700">Contact your manager to get tasks assigned</p>
+               </div>
             ) : (
               <>
                 <select
@@ -547,9 +586,12 @@ const TimeTracker = () => {
                     <div className="text-sm">
                       <p className="font-semibold text-blue-900">Task: {selectedTaskDetails.title}</p>
                       <p className="text-blue-700">Project: {selectedTaskDetails.project}</p>
-                      <p className="text-blue-600">
+                      <p className="text-blue-600 mb-3">
                         Status: <span className="font-medium uppercase">{selectedTaskDetails.status}</span>
                       </p>
+                      <div className="inline-block rounded-md bg-blue-100 px-3 py-1.5 font-semibold text-blue-800 border border-blue-200 shadow-sm">
+                        Total Time Logged: {selectedTaskTotalFormatted}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -574,35 +616,13 @@ const TimeTracker = () => {
           </div>
         </div>
 
-        {hasActiveTimer && (
-          <div className="rounded-[1.5rem] bg-white p-8 shadow-sm ring-1 ring-stone-200">
-            <h2 className="mb-4 text-xl font-semibold">Add Work Notes</h2>
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="What are you working on right now?"
-                className="flex-1 rounded-lg border px-4 py-3 focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleAddNote}
-                className="rounded-lg bg-gray-800 px-6 py-3 font-medium text-white transition hover:bg-gray-900"
-              >
-                Add Note
-              </button>
-            </div>
-          </div>
-        )}
+
 
         <div className="rounded-[1.5rem] bg-white p-8 shadow-sm ring-1 ring-stone-200">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Today</p>
-              <h2 className="text-2xl font-bold text-stone-900">Today&apos;s Time Logs</h2>
-            </div>
-            <div className="rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">
-              Total tracked: {totalTrackedToday}
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Summary</p>
+              <h2 className="text-2xl font-bold text-stone-900">Total Time by Task</h2>
             </div>
           </div>
 
@@ -610,22 +630,67 @@ const TimeTracker = () => {
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-stone-200 text-xs uppercase tracking-[0.18em] text-stone-500">
+                  <th className="px-4 py-3">Task Name</th>
+                  <th className="px-4 py-3">Total Sessions</th>
+                  <th className="px-4 py-3">Total Time Spent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {taskSummaries.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="px-4 py-8 text-center text-stone-500">
+                      No tasks tracked yet.
+                    </td>
+                  </tr>
+                ) : (
+                  taskSummaries.map((summary, idx) => (
+                    <tr key={idx} className="border-b border-stone-100 last:border-0 hover:bg-stone-50">
+                      <td className="px-4 py-4 font-medium text-stone-900">{summary.task_name}</td>
+                      <td className="px-4 py-4 text-stone-600">{summary.session_count}</td>
+                      <td className="px-4 py-4 font-mono font-bold tracking-wider text-sky-700">
+                        {formatDuration(summary.total_seconds)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="rounded-[1.5rem] bg-white p-8 shadow-sm ring-1 ring-stone-200">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">History</p>
+              <h2 className="text-2xl font-bold text-stone-900">Time Log History</h2>
+            </div>
+            <div className="rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">
+              Total tracked today: {totalTrackedToday}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b border-stone-200 text-xs uppercase tracking-[0.18em] text-stone-500">
+                  <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Task</th>
                   <th className="px-4 py-3">Start Time</th>
                   <th className="px-4 py-3">End Time</th>
                   <th className="px-4 py-3">Duration</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {todayLogs.length === 0 ? (
+                {timeLogs.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-4 py-8 text-center text-stone-500">
-                      No time logs recorded for today yet.
+                    <td colSpan="7" className="px-4 py-8 text-center text-stone-500">
+                      No time logs recorded yet.
                     </td>
                   </tr>
                 ) : (
-                  todayLogs.map((session) => {
+                  timeLogs.map((session) => {
                     const normalizedStatus = String(session.status || "").toLowerCase();
                     const statusLabel =
                       normalizedStatus === "stopped" || normalizedStatus === "completed"
@@ -640,6 +705,9 @@ const TimeTracker = () => {
 
                     return (
                       <tr key={session.id} className="border-b border-stone-100 last:border-0">
+                        <td className="px-4 py-4 text-sm font-medium text-stone-500">
+                          {new Date(session.start_time).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </td>
                         <td className="px-4 py-4 font-medium text-stone-900">
                           {session.task_title || session.task_name}
                         </td>
@@ -653,6 +721,16 @@ const TimeTracker = () => {
                             {statusLabel}
                           </span>
                         </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <button type="button" onClick={() => setViewingSession(session)} className="text-sky-600 hover:text-sky-700 transition" title="View details">
+                              <FaEye size={16} />
+                            </button>
+                            <button type="button" onClick={() => handleDeleteSession(session.id)} className="text-rose-600 hover:text-rose-700 transition" title="Delete log">
+                              <FaTrash size={16} />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
@@ -662,6 +740,48 @@ const TimeTracker = () => {
           </div>
         </div>
       </div>
+
+      {viewingSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-[1.5rem] bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-stone-900">Time Log Details</h2>
+              <button type="button" className="text-stone-400 hover:text-stone-600 text-xl" onClick={() => setViewingSession(null)}>&times;</button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-xl bg-stone-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-1">Task Name</p>
+                <p className="text-sm font-medium text-stone-800">{viewingSession.task_title || viewingSession.task_name}</p>
+              </div>
+              <div className="rounded-xl bg-stone-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-1">Project</p>
+                <p className="text-sm font-medium text-stone-800">{viewingSession.project_name || "N/A"}</p>
+              </div>
+              <div className="rounded-xl bg-stone-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-1">Start Time</p>
+                <p className="text-sm font-medium text-stone-800">
+                  {new Date(viewingSession.start_time).toLocaleString()}
+                </p>
+              </div>
+              <div className="rounded-xl bg-stone-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-1">End Time</p>
+                <p className="text-sm font-medium text-stone-800">
+                  {viewingSession.end_time ? new Date(viewingSession.end_time).toLocaleString() : "Running"}
+                </p>
+              </div>
+              <div className="rounded-xl bg-stone-50 p-4 md:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-1">Notes</p>
+                <p className="text-sm font-medium text-stone-800 whitespace-pre-wrap">{viewingSession.notes || "No notes added for this session."}</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end mt-6">
+              <button type="button" className="rounded-xl bg-stone-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-stone-700 transition-all" onClick={() => setViewingSession(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </EmployeeLayout>
   );
 };

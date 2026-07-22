@@ -325,19 +325,19 @@ const Employees = () => {
         )}
 
         {viewingEmployee && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-            <div className="w-full max-w-2xl rounded-[1.5rem] bg-white p-6 shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-2xl rounded-[1.5rem] bg-slate-900 p-6 shadow-2xl border border-slate-800">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-slate-900">Employee Details</h2>
-                <button type="button" className="text-slate-400 hover:text-slate-600 text-xl" onClick={() => setViewingEmployee(null)}>&times;</button>
+                <h2 className="text-2xl font-semibold text-white">Employee Details</h2>
+                <button type="button" className="text-slate-400 hover:text-white text-xl" onClick={() => setViewingEmployee(null)}>&times;</button>
               </div>
               <div className="flex items-center gap-4 mb-6">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-600 text-xl font-semibold text-white">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 text-xl font-semibold text-white shadow-lg shadow-sky-500/20">
                   {viewingEmployee.first_name?.[0]}{viewingEmployee.last_name?.[0]}
                 </div>
                 <div>
-                  <p className="text-xl font-semibold text-slate-900">{viewingEmployee.first_name} {viewingEmployee.last_name}</p>
-                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${viewingEmployee.is_active ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                  <p className="text-xl font-semibold text-white">{viewingEmployee.first_name} {viewingEmployee.last_name}</p>
+                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold mt-1 ${viewingEmployee.is_active ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"}`}>
                     {viewingEmployee.is_active ? "Active" : "Inactive"}
                   </span>
                 </div>
@@ -353,14 +353,14 @@ const Employees = () => {
                   ["End Date", viewingEmployee.end_date ? new Date(viewingEmployee.end_date).toLocaleDateString() : "N/A"],
                   ["Salary", viewingEmployee.salary ? `₹${Number(viewingEmployee.salary).toLocaleString()}` : "N/A"]
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-xl bg-slate-50 p-4">
+                  <div key={label} className="rounded-xl bg-slate-800/80 p-4 ring-1 ring-white/5">
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
-                    <p className="text-sm font-medium text-slate-800">{value}</p>
+                    <p className="text-sm font-medium text-slate-200">{value}</p>
                   </div>
                 ))}
               </div>
               <div className="flex justify-end mt-6">
-                <button type="button" className="btn-secondary" onClick={() => setViewingEmployee(null)}>Close</button>
+                <button type="button" className="rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-700 ring-1 ring-white/10 transition-all" onClick={() => setViewingEmployee(null)}>Close</button>
               </div>
             </div>
           </div>

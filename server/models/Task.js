@@ -82,8 +82,13 @@ class Task {
     }
 
     if (filters.status) {
-      query += ` AND t.status = $${params.length + 1}`;
-      params.push(filters.status);
+      if (filters.status === 'overdue') {
+        // Overdue = due_date is strictly before today and not completed
+        query += ` AND t.due_date < CURRENT_DATE AND t.status != 'completed'`;
+      } else {
+        query += ` AND t.status = $${params.length + 1}`;
+        params.push(filters.status);
+      }
     }
 
     if (filters.priority) {

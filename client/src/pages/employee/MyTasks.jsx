@@ -60,7 +60,18 @@ const MyTasks = () => {
     }
   };
 
+  // Determine if a task is overdue: due_date strictly before today and not completed
+  const isOverdue = (task) => {
+    if (!task.due_date || task.status === "completed") return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(task.due_date);
+    due.setHours(0, 0, 0, 0);
+    return due < today;
+  };
+
   const filteredTasks = tasks.filter((task) => {
+    if (filters.status === "overdue") return isOverdue(task);
     if (!filters.status) return true;
     return task.status === filters.status;
   });
@@ -151,7 +162,7 @@ const MyTasks = () => {
               <option value="pending">Pending</option>
               <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
-              <option value="on-hold">On Hold</option>
+              <option value="overdue">🔴 Overdue</option>
             </select>
           </div>
 
@@ -162,11 +173,19 @@ const MyTasks = () => {
               {filteredTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition"
+                  className={`border rounded-lg overflow-hidden hover:shadow-md transition ${
+                    isOverdue(task)
+                      ? "border-red-400 shadow-red-100"
+                      : "border-gray-200"
+                  }`}
                 >
                   {/* Task Header */}
                   <div
-                    className="p-4 cursor-pointer bg-gray-50 hover:bg-gray-100 flex justify-between items-center"
+                    className={`p-4 cursor-pointer flex justify-between items-center ${
+                      isOverdue(task)
+                        ? "bg-red-50 hover:bg-red-100"
+                        : "bg-gray-50 hover:bg-gray-100"
+                    }`}
                     onClick={() =>
                       setExpandedTaskId(
                         expandedTaskId === task.id ? null : task.id
@@ -174,7 +193,16 @@ const MyTasks = () => {
                     }
                   >
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg">{task.task_title}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className={`font-bold text-lg ${
+                          isOverdue(task) ? "text-red-800" : ""
+                        }`}>{task.task_title}</h3>
+                        {isOverdue(task) && (
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white animate-pulse">
+                            OVERDUE
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600">
                         {task.task_description?.substring(0, 100)}...
                       </p>
@@ -263,7 +291,6 @@ const MyTasks = () => {
                             "pending",
                             "in-progress",
                             "completed",
-                            "on-hold",
                           ].map((status) => (
                             <button
                               key={status}
@@ -282,33 +309,6 @@ const MyTasks = () => {
                                 .toUpperCase() + status.slice(1)}
                             </button>
                           ))}
-                        </div>
-                      </div>
-
-                      {/* Add Comment */}
-                      <div>
-                        <p className="text-xs text-gray-600 mb-2">
-                          Add Comment
-                        </p>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Add a comment..."
-                            value={commentForm[task.id] || ""}
-                            onChange={(e) =>
-                              setCommentForm({
-                                ...commentForm,
-                                [task.id]: e.target.value,
-                              })
-                            }
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <button
-                            onClick={() => handleAddComment(task.id)}
-                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                          >
-                            Add
-                          </button>
                         </div>
                       </div>
                     </div>

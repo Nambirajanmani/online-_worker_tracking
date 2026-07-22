@@ -363,8 +363,9 @@ const updateLeaveStatus = async (req, res) => {
   const client = await pool.connect();
   try {
     const status = (req.body.status || "").toLowerCase().trim();
-    if (!["approved", "rejected"].includes(status)) {
-      return res.status(400).json({ success: false, message: "Status must be approved or rejected" });
+    const VALID_STATUSES = ["pending", "approved", "rejected"];
+    if (!VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ success: false, message: "Status must be one of: pending, approved, rejected" });
     }
 
     const adminRemark = (req.body.admin_remark ?? req.body.comments ?? "").toString().trim() || null;
@@ -372,9 +373,6 @@ const updateLeaveStatus = async (req, res) => {
     const existing = await client.query("SELECT * FROM leave_requests WHERE id = $1", [req.params.id]);
     if (!existing.rows.length) {
       return res.status(404).json({ success: false, message: "Leave request not found" });
-    }
-    if (existing.rows[0].status !== "pending") {
-      return res.status(400).json({ success: false, message: "Request is no longer pending" });
     }
 
     const result = await client.query(
