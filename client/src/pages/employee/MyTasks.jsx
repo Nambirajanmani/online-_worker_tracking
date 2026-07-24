@@ -5,7 +5,6 @@ import {
   fetchMyTasks,
   fetchMyTaskStats,
   updateTask,
-  addTaskUpdate,
 } from "../../store/slices/taskSlice";
 import toast from "react-hot-toast";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
@@ -14,7 +13,6 @@ const MyTasks = () => {
   const dispatch = useDispatch();
   const { tasks, stats, loading } = useSelector((state) => state.tasks);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
-  const [commentForm, setCommentForm] = useState({});
   const [filters, setFilters] = useState({ status: "" });
 
   useEffect(() => {
@@ -35,28 +33,6 @@ const MyTasks = () => {
       toast.success("Task status updated");
     } catch (error) {
       console.error("Failed to update task status:", error);
-    }
-  };
-
-  const handleAddComment = async (taskId) => {
-    const comment = commentForm[taskId];
-    if (!comment?.trim()) {
-      toast.error("Please enter a comment");
-      return;
-    }
-
-    try {
-      await dispatch(
-        addTaskUpdate({
-          id: taskId,
-          updateData: { comment },
-        })
-      ).unwrap();
-      setCommentForm({ ...commentForm, [taskId]: "" });
-      dispatch(fetchMyTasks());
-      toast.success("Comment added");
-    } catch (error) {
-      console.error("Failed to add comment:", error);
     }
   };
 

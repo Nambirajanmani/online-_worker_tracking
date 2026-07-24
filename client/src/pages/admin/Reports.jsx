@@ -4,13 +4,11 @@ import { useNavigate } from "react-router-dom";
 import {
   getAllReports,
   getReportStatistics,
-  updateReportInList,
 } from "../../store/slices/reportSlice";
 import {
   Search,
   ChevronLeft,
   ChevronRight,
-  BarChart3,
   Clock,
   CheckCircle,
   XCircle,
@@ -21,7 +19,6 @@ import {
   X,
 } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
-import toast from "react-hot-toast";
 
 const Reports = () => {
   const dispatch = useDispatch();

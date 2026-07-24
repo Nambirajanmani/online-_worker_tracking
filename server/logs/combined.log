@@ -323,3 +323,10 @@
 {"level":"info","message":"Server running on http://0.0.0.0:5001","timestamp":"2026-07-22 15:08:45"}
 {"level":"info","message":"API rate limiting disabled (development mode)","timestamp":"2026-07-22 15:08:55"}
 {"level":"info","message":"Server running on http://0.0.0.0:5001","timestamp":"2026-07-22 15:08:56"}
+{"level":"info","message":"API rate limiting disabled (development mode)","timestamp":"2026-07-22 15:47:41"}
+{"code":"ECONNREFUSED","level":"error","message":"Failed to start server","stack":"AggregateError [ECONNREFUSED]: \n    at D:\\online-_worker_tracking\\server\\node_modules\\pg-pool\\index.js:45:11\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async connectDB (D:\\online-_worker_tracking\\server\\config\\database.js:38:18)\n    at async startServer (D:\\online-_worker_tracking\\server\\server.js:135:5)","timestamp":"2026-07-22 15:47:42"}
+{"level":"info","message":"API rate limiting disabled (development mode)","timestamp":"2026-07-22 16:10:45"}
+{"code":"ECONNREFUSED","level":"error","message":"Failed to start server","stack":"AggregateError [ECONNREFUSED]: \n    at D:\\online-_worker_tracking\\server\\node_modules\\pg-pool\\index.js:45:11\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async connectDB (D:\\online-_worker_tracking\\server\\config\\database.js:38:18)\n    at async startServer (D:\\online-_worker_tracking\\server\\server.js:135:5)","timestamp":"2026-07-22 16:10:45"}
+{"level":"info","message":"API rate limiting disabled (development mode)","timestamp":"2026-07-24 10:12:34"}
+{"level":"info","message":"Server running on http://0.0.0.0:5001","timestamp":"2026-07-24 10:12:36"}
+{"level":"info","message":"API rate limiting disabled (development mode)","timestamp":"2026-07-24 10:32:02"}

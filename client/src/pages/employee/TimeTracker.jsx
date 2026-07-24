@@ -73,7 +73,6 @@ const TimeTracker = () => {
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [activeTimer, setActiveTimer] = useState(null);
   const [displayElapsedSeconds, setDisplayElapsedSeconds] = useState(0);
-  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
   const [timeLogs, setTimeLogs] = useState([]);
@@ -379,24 +378,12 @@ const TimeTracker = () => {
         setDisplayElapsedSeconds(0);
         setSelectedTaskId("");
         setSelectedTaskDetails(null);
-        setNotes("");
         toast.success(res.data.message || "Timer stopped successfully");
         await fetchActiveTimer();
         await fetchTimeLogs();
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to stop timer");
-    }
-  };
-
-  const handleAddNote = async () => {
-    if (!notes.trim()) return;
-    try {
-      await api.post("/timer/notes", { notes }, { headers: getAuthHeaders() });
-      toast.success("Note added");
-      setNotes("");
-    } catch (error) {
-      toast.error("Failed to add note");
     }
   };
 

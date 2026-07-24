@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { FaCalendarAlt, FaChartLine, FaCheckCircle, FaClock } from "react-icons/fa";
 import { useSelector } from "react-redux";
@@ -18,7 +18,7 @@ const Dashboard = () => {
     productivity: 0
   });
 
-  const fetchEmployeeData = async () => {
+  const fetchEmployeeData = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [attendanceRes, tasksRes, leavesRes, timeEntriesRes] = await Promise.all([
@@ -43,11 +43,11 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Failed to fetch employee dashboard", error);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchEmployeeData();
-  }, [token]);
+  }, [fetchEmployeeData]);
 
   const greetingHour = new Date().getHours();
   const greeting =

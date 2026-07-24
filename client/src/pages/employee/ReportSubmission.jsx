@@ -112,7 +112,7 @@ const ReportSubmission = () => {
     }
 
     try {
-      const result = await dispatch(createReport(form)).unwrap();
+      await dispatch(createReport(form)).unwrap();
       setShowSuccess(true);
       setFormData({
         title: "",

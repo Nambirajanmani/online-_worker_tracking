@@ -1,46 +1,46 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import EmployeeLayout from "../../components/employee/EmployeeLayout";
-import axios from "axios";
+import { api } from "../../lib/api";
 
 const SessionHistory = () => {
   const [history, setHistory] = useState([]);
   const [summary, setSummary] = useState({ total_duration: 0, active_duration: 0, idle_duration: 0 });
 
-  useEffect(() => {
-    fetchHistory();
-    fetchSummary();
-  }, []);
-
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem("token");
     return { Authorization: `Bearer ${token}` };
-  };
+  }, []);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if(!user.id) return;
-      const res = await axios.get(`http://localhost:5000/api/timer/history/${user.id}`, { headers: getAuthHeaders() });
+      if (!user.id) return;
+      const res = await api.get(`/timer/history/${user.id}`, { headers: getAuthHeaders() });
       if (res.data.success) {
         setHistory(res.data.history);
       }
     } catch (error) {
-      console.error("Failed to fetch history");
+      console.error("Failed to fetch history", error);
     }
-  };
+  }, [getAuthHeaders]);
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if(!user.id) return;
-      const res = await axios.get(`http://localhost:5000/api/timer/summary/${user.id}`, { headers: getAuthHeaders() });
+      if (!user.id) return;
+      const res = await api.get(`/timer/summary/${user.id}`, { headers: getAuthHeaders() });
       if (res.data.success) {
         setSummary(res.data.summary);
       }
     } catch (error) {
-      console.error("Failed to fetch summary");
+      console.error("Failed to fetch summary", error);
     }
-  };
+  }, [getAuthHeaders]);
+
+  useEffect(() => {
+    fetchHistory();
+    fetchSummary();
+  }, [fetchHistory, fetchSummary]);
 
   const formatDuration = (seconds) => {
     if (!seconds) return "0h 0m";

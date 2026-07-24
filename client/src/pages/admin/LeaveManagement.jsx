@@ -55,8 +55,8 @@ const LeaveManagement = () => {
   const [leaveType, setLeaveType] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [appliedFrom, setAppliedFrom] = useState("");
-  const [appliedTo, setAppliedTo] = useState("");
+  const [appliedFrom] = useState("");
+  const [appliedTo] = useState("");
   
   const [actionRow, setActionRow] = useState(null);
   const [actionType, setActionType] = useState(null); // 'approve', 'reject', 'view'

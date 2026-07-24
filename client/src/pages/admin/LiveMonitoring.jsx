@@ -1,62 +1,68 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import AdminLayout from "../../components/admin/AdminLayout";
-import axios from "axios";
-import io from "socket.io-client";
+import { api } from "../../lib/api";
+import { connectSocket } from "../../lib/socket";
 
 const LiveMonitoring = () => {
+  const { token } = useSelector((state) => state.auth);
   const [activeSessions, setActiveSessions] = useState([]);
   const [stats, setStats] = useState({ working: 0, idle: 0, paused: 0 });
 
-  useEffect(() => {
-    fetchLiveStatus();
-
-    const token = localStorage.getItem("token");
-    const socket = io(process.env.REACT_APP_API_URL || "http://localhost:5000", {
-      auth: { token }
-    });
-
-    socket.on("timer_update", () => {
-      fetchLiveStatus(); // Refresh data on any timer update
-    });
-    
-    socket.on("timer:status_update", () => {
-       fetchLiveStatus();
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
-
-  const fetchLiveStatus = async () => {
+  const fetchLiveStatus = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/timer/live", {
+      const res = await api.get("/timer/live", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
-        const sessions = res.data.activeSessions || [];
+        const sessions = Array.isArray(res.data.activeSessions) ? res.data.activeSessions : [];
         setActiveSessions(sessions);
-        
+
         let working = 0, idle = 0, paused = 0;
-        sessions.forEach(s => {
-          if(s.status === 'running') working++;
-          else if(s.status === 'idle') idle++;
-          else paused++;
+        sessions.forEach((session) => {
+          const status = String(session.status || "").toLowerCase();
+          if (status === "running") working++;
+          else if (status === "idle") idle++;
+          else if (status === "paused") paused++;
         });
         setStats({ working, idle, paused });
       }
     } catch (error) {
       console.error("Failed to fetch live status", error);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchLiveStatus();
+
+    if (!token) return undefined;
+
+    const socket = connectSocket(token);
+    const handleTimerUpdate = () => {
+      fetchLiveStatus();
+    };
+
+    socket.on("timer_update", handleTimerUpdate);
+    socket.on("timer:status_update", handleTimerUpdate);
+
+    return () => {
+      socket.off("timer_update", handleTimerUpdate);
+      socket.off("timer:status_update", handleTimerUpdate);
+    };
+  }, [fetchLiveStatus, token]);
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case "running": return <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Working</span>;
-      case "paused": return <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Paused</span>;
-      case "idle": return <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Idle</span>;
-      default: return null;
+    const normalizedStatus = String(status || "").toLowerCase();
+
+    switch (normalizedStatus) {
+      case "running":
+        return <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Working</span>;
+      case "paused":
+        return <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Paused</span>;
+      case "idle":
+        return <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Idle</span>;
+      default:
+        return null;
     }
   };
 
