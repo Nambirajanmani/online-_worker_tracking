@@ -81,12 +81,34 @@ class TimerSession {
   
   static async getDailySummary(employeeId, dateStr) {
     // dateStr format 'YYYY-MM-DD'
+    // Include completed/stopped sessions AND any currently active sessions
+    // For running sessions, add live elapsed seconds to stored active_duration
     const result = await pool.query(
-      `SELECT COALESCE(SUM(total_duration), 0) as total_duration,
-              COALESCE(SUM(active_duration), 0) as active_duration,
-              COALESCE(SUM(idle_duration), 0) as idle_duration
+      `SELECT
+         COALESCE(SUM(
+           CASE
+             WHEN status IN ('completed', 'stopped') THEN COALESCE(total_duration, 0)
+             ELSE (
+               COALESCE(active_duration, 0)
+               + COALESCE(break_duration, 0)
+               + COALESCE(idle_duration, 0)
+               + CASE WHEN status = 'running'
+                   THEN GREATEST(0, EXTRACT(EPOCH FROM (NOW() - COALESCE(updated_at, start_time)))::int)
+                   ELSE 0 END
+             )
+           END
+         ), 0) AS total_duration,
+         COALESCE(SUM(
+           COALESCE(active_duration, 0)
+           + CASE WHEN status = 'running'
+               THEN GREATEST(0, EXTRACT(EPOCH FROM (NOW() - COALESCE(updated_at, start_time)))::int)
+               ELSE 0 END
+         ), 0) AS active_duration,
+         COALESCE(SUM(COALESCE(idle_duration, 0)), 0) AS idle_duration
        FROM timer_sessions
-       WHERE employee_id = $1 AND DATE(start_time) = $2 AND status IN ('completed', 'stopped')`,
+       WHERE employee_id = $1
+         AND DATE(start_time) = $2
+         AND status IN ('completed', 'stopped', 'running', 'paused', 'idle')`,
       [employeeId, dateStr]
     );
     return result.rows[0];

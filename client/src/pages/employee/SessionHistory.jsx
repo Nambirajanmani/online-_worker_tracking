@@ -40,6 +40,13 @@ const SessionHistory = () => {
   useEffect(() => {
     fetchHistory();
     fetchSummary();
+
+    // Refresh summary every 30 seconds so live running-session time stays current
+    const interval = setInterval(() => {
+      fetchSummary();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [fetchHistory, fetchSummary]);
 
   const formatDuration = (seconds) => {
