@@ -5,6 +5,7 @@ import { api } from "../../lib/api";
 const SessionHistory = () => {
   const [history, setHistory] = useState([]);
   const [summary, setSummary] = useState({ total_duration: 0, active_duration: 0, idle_duration: 0 });
+  const [summaryLoaded, setSummaryLoaded] = useState(false);
 
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem("token");
@@ -31,6 +32,7 @@ const SessionHistory = () => {
       const res = await api.get(`/timer/summary/${user.id}`, { headers: getAuthHeaders() });
       if (res.data.success) {
         setSummary(res.data.summary);
+        setSummaryLoaded(true);
       }
     } catch (error) {
       console.error("Failed to fetch summary", error);
@@ -61,20 +63,31 @@ const SessionHistory = () => {
       <div className="p-6 space-y-6">
         <h1 className="text-3xl font-semibold text-gray-800">My Session History</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-             <p className="text-sm text-gray-500 mb-1 font-medium">Today's Total Time</p>
-             <p className="text-3xl font-bold text-blue-600">{formatDuration(summary.total_duration)}</p>
+        {/* Today Summary */}
+        {summaryLoaded && summary.total_duration === 0 && summary.active_duration === 0 && summary.idle_duration === 0 ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl px-6 py-5 mb-8 flex items-center gap-3">
+            <span className="text-2xl">📅</span>
+            <div>
+              <p className="text-blue-700 font-semibold text-sm">No sessions today</p>
+              <p className="text-blue-500 text-xs mt-0.5">You haven't started any work session today. Previous sessions are shown below.</p>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-             <p className="text-sm text-gray-500 mb-1 font-medium">Active Working Time</p>
-             <p className="text-3xl font-bold text-green-600">{formatDuration(summary.active_duration)}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+               <p className="text-sm text-gray-500 mb-1 font-medium">Today's Total Time</p>
+               <p className="text-3xl font-bold text-blue-600">{formatDuration(summary.total_duration)}</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+               <p className="text-sm text-gray-500 mb-1 font-medium">Active Working Time</p>
+               <p className="text-3xl font-bold text-green-600">{formatDuration(summary.active_duration)}</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+               <p className="text-sm text-gray-500 mb-1 font-medium">Idle Time Detected</p>
+               <p className="text-3xl font-bold text-red-600">{formatDuration(summary.idle_duration)}</p>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-             <p className="text-sm text-gray-500 mb-1 font-medium">Idle Time Detected</p>
-             <p className="text-3xl font-bold text-red-600">{formatDuration(summary.idle_duration)}</p>
-          </div>
-        </div>
+        )}
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
