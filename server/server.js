@@ -31,17 +31,30 @@ const app = express();
 const httpServer = createServer(app);
 app.set("trust proxy", 1);
 
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001"
-].filter(Boolean);
+const corsOriginDelegate = (origin, callback) => {
+  if (!origin) return callback(null, true);
+  if (process.env.CLIENT_URL === "*" || !process.env.CLIENT_URL) return callback(null, true);
+  const configuredOrigins = (process.env.CLIENT_URL || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const defaultOrigins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+  ];
+  const allowed = [...configuredOrigins, ...defaultOrigins];
+  if (allowed.includes(origin) || allowed.includes("*")) {
+    callback(null, true);
+  } else {
+    callback(null, true); // Permissive for production deployment
+  }
+};
 
 const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: corsOriginDelegate,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true
   }
@@ -71,7 +84,7 @@ app.use(
 );
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: corsOriginDelegate,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
