@@ -184,7 +184,7 @@ const TimeTracker = () => {
     const socketUrl =
       process.env.REACT_APP_SOCKET_URL ||
       process.env.REACT_APP_API_URL?.replace("/api", "") ||
-      "http://localhost:8000";
+      "https://online-worker-tracking.onrender.com";
 
     socketRef.current = io(socketUrl, {
       auth: { token },

@@ -129,7 +129,7 @@ const LiveMonitoring = () => {
                 <div key={session.id} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-4">
                     <img 
-                      src={session.profile_pic ? `http://localhost:5000${session.profile_pic}` : "https://ui-avatars.com/api/?name="+encodeURIComponent(session.employee_name)} 
+                      src={session.profile_pic ? `${(process.env.REACT_APP_API_URL || "").replace(/\/api\/?$/, "")}${session.profile_pic}` : "https://ui-avatars.com/api/?name="+encodeURIComponent(session.employee_name)} 
                       alt={session.employee_name} 
                       className="w-12 h-12 rounded-full border border-gray-200"
                     />
