@@ -5,29 +5,44 @@ const path = require("path");
 
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
-if (!process.env.DATABASE_URL) {
+const isConnectionUri = Boolean(process.env.DATABASE_URL);
+if (!isConnectionUri && !process.env.DB_HOST && !process.env.DB_NAME) {
   throw new Error(
-    "Missing required environment variable: DATABASE_URL. " +
-      "Create server/.env from server/.env.example and fill in your NeonDB connection string."
+    "Missing required database configuration. Provide either DATABASE_URL or DB_HOST, DB_NAME, DB_USER, DB_PASSWORD in server/.env."
   );
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  },
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
-});
+const poolConfig = isConnectionUri
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl:
+        process.env.DATABASE_URL.includes("localhost") ||
+        process.env.DATABASE_URL.includes("127.0.0.1")
+          ? false
+          : { rejectUnauthorized: false },
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    }
+  : {
+      host: process.env.DB_HOST || "localhost",
+      port: Number(process.env.DB_PORT || 5432),
+      database: process.env.DB_NAME || "employee_tracking",
+      user: process.env.DB_USER || "postgres",
+      password: process.env.DB_PASSWORD,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    };
+
+const pool = new Pool(poolConfig);
 
 pool.on("connect", () => {
-  console.log("Connected to NeonDB (PostgreSQL) database");
+  console.log("Connected to PostgreSQL database");
 });
 
 pool.on("error", (error) => {
-  console.error("Unexpected NeonDB error", error);
+  console.error("Unexpected PostgreSQL error", error);
 });
 
 const connectDB = async () => {
