@@ -64,7 +64,7 @@ const Login = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="admin@example.com"
+                placeholder="Enter your email"
                 required
               />
             </div>
@@ -97,11 +97,6 @@ const Login = () => {
           <Link to="/forgot-password" className="font-medium text-sky-600 hover:text-sky-700">
             Forgot password?
           </Link>
-        </div>
-
-        <div className="mt-6 rounded-2xl bg-stone-100 p-4 text-center text-xs text-stone-600">
-          <p className="font-semibold text-stone-800">Demo credentials</p>
-          <p className="mt-1">Admin: admin@example.com / Admin@123</p>
         </div>
       </div>
     </div>

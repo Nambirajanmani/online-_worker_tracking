@@ -25,10 +25,27 @@ const emptyForm = {
   salary: ""
 };
 
+const departmentsList = [
+  "Management",
+  "IT",
+  "Software Development",
+  "UI/UX Design",
+  "Quality Assurance (QA)",
+  "DevOps / Cloud",
+  "IT Support",
+  "Business Analysis",
+  "Data Science / AI-ML",
+  "HR",
+  "Sales",
+  "Marketing",
+  "Finance"
+];
+
 const Employees = () => {
   const dispatch = useDispatch();
   const { employees, loading } = useSelector((state) => state.employees);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [viewingEmployee, setViewingEmployee] = useState(null);
@@ -39,11 +56,13 @@ const Employees = () => {
     dispatch(fetchEmployees());
   }, [dispatch]);
 
-  const filteredEmployees = employees.filter((employee) =>
-    `${employee.first_name || ""} ${employee.last_name || ""} ${employee.email || ""} ${employee.department || ""} ${employee.employee_code || ""}`
+  const filteredEmployees = employees.filter((employee) => {
+    const matchesSearch = `${employee.first_name || ""} ${employee.last_name || ""} ${employee.email || ""} ${employee.department || ""} ${employee.employee_code || ""}`
       .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+      .includes(searchTerm.toLowerCase());
+    const matchesDept = selectedDepartment ? employee.department === selectedDepartment : true;
+    return matchesSearch && matchesDept;
+  });
 
   const validateForm = () => {
     const errors = {};
@@ -136,7 +155,7 @@ const Employees = () => {
         </div>
 
         <div className="mb-4 sm:mb-6 rounded-xl sm:rounded-[1.5rem] bg-white p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200">
-          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -147,9 +166,21 @@ const Employees = () => {
                 className="input-field pl-11 text-sm sm:text-base !py-2.5 sm:!py-3"
               />
             </div>
-            <button type="button" className="btn-secondary inline-flex items-center justify-center !px-4 !py-2.5 !text-sm">
-              <FaFilter className="mr-2" /> Filter
-            </button>
+            <div className="flex items-center gap-2">
+              <FaFilter className="text-slate-400 hidden sm:block" />
+              <select
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                className="input-field text-sm !py-2.5 sm:!py-3 !w-full sm:!w-64"
+              >
+                <option value="">All Departments</option>
+                {departmentsList.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -301,12 +332,11 @@ const Employees = () => {
                       className="input-field"
                     >
                       <option value="">Select department</option>
-                      <option value="Management">Management</option>
-                      <option value="IT">IT</option>
-                      <option value="HR">HR</option>
-                      <option value="Sales">Sales</option>
-                      <option value="Marketing">Marketing</option>
-                      <option value="Finance">Finance</option>
+                      {departmentsList.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
