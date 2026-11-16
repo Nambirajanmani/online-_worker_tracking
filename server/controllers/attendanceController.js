@@ -3,6 +3,49 @@ const { pool } = require("../config/database");
 
 const LATE_THRESHOLD = "09:30:00";
 
+const resolveTimezone = (req) => {
+  if (req?.body?.timezone) return req.body.timezone;
+  if (req?.query?.timezone) return req.query.timezone;
+  if (req?.headers && req.headers["x-timezone"]) return req.headers["x-timezone"];
+  return process.env.APP_TIMEZONE || "Asia/Kolkata";
+};
+
+const getNowInTimezone = (tz = "Asia/Kolkata") => {
+  const now = new Date();
+  try {
+    const dateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    const timeStr = new Intl.DateTimeFormat("en-GB", {
+      timeZone: tz,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(now);
+    return { date: dateStr, time: timeStr };
+  } catch (err) {
+    const fallback = "Asia/Kolkata";
+    const dateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: fallback,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    const timeStr = new Intl.DateTimeFormat("en-GB", {
+      timeZone: fallback,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(now);
+    return { date: dateStr, time: timeStr };
+  }
+};
+
 const calculateHours = (clockIn, clockOut) => {
   const start = moment(clockIn, "HH:mm:ss");
   const end = moment(clockOut, "HH:mm:ss");
@@ -125,8 +168,10 @@ const clockIn = async (req, res) => {
   const client = await pool.connect();
   try {
     const employeeId = req.user.role === "admin" ? req.body.employeeId : req.user.employee_id;
-    const today = moment().format("YYYY-MM-DD");
-    const currentTime = moment().format("HH:mm:ss");
+    const tz = resolveTimezone(req);
+    const serverNow = getNowInTimezone(tz);
+    const today = req.body?.client_date || serverNow.date;
+    const currentTime = req.body?.client_time || serverNow.time;
 
     const existing = await client.query("SELECT * FROM attendance WHERE employee_id = $1 AND date = $2", [
       employeeId,
@@ -187,8 +232,10 @@ const clockOut = async (req, res) => {
   const client = await pool.connect();
   try {
     const employeeId = req.user.role === "admin" ? req.body.employeeId : req.user.employee_id;
-    const today = moment().format("YYYY-MM-DD");
-    const currentTime = moment().format("HH:mm:ss");
+    const tz = resolveTimezone(req);
+    const serverNow = getNowInTimezone(tz);
+    const today = req.body?.client_date || serverNow.date;
+    const currentTime = req.body?.client_time || serverNow.time;
 
     const attendance = await client.query("SELECT * FROM attendance WHERE employee_id = $1 AND date = $2", [
       employeeId,
@@ -252,7 +299,9 @@ const clockOut = async (req, res) => {
 
 const getTodayAttendance = async (req, res) => {
   try {
-    const today = moment().format("YYYY-MM-DD");
+    const tz = resolveTimezone(req);
+    const serverNow = getNowInTimezone(tz);
+    const today = req.query?.date || req.query?.client_date || serverNow.date;
 
     if (req.user.role === "admin" && !req.query.employeeId) {
       const stats = await fetchAttendanceStats(today);
@@ -274,6 +323,7 @@ const getTodayAttendance = async (req, res) => {
       [employeeId, today]
     );
     const row = result.rows[0];
+    return res.json({ success: true, data: row ? shapeAttendanceRow(row) : null });
     return res.json({ success: true, data: row ? shapeAttendanceRow(row) : null });
   } catch (error) {
     console.error(error);
