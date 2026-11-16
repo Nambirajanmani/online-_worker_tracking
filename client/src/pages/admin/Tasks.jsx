@@ -182,9 +182,9 @@ const Tasks = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Dashboard Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {[
             { label: "Total Tasks", value: stats?.total || 0, color: "bg-blue-500" },
             { label: "Pending", value: stats?.pending || 0, color: "bg-orange-500" },
@@ -192,9 +192,9 @@ const Tasks = () => {
             { label: "Completed", value: stats?.completed || 0, color: "bg-green-500" },
             { label: "Overdue", value: stats?.overdue || 0, color: "bg-red-500" },
           ].map((stat) => (
-            <div key={stat.label} className={`${stat.color} text-white p-6 rounded-lg shadow`}>
-              <p className="text-sm font-medium">{stat.label}</p>
-              <p className="text-3xl font-bold">{stat.value}</p>
+            <div key={stat.label} className={`${stat.color} text-white p-3.5 sm:p-6 rounded-xl shadow`}>
+              <p className="text-xs sm:text-sm font-medium">{stat.label}</p>
+              <p className="text-xl sm:text-3xl font-bold">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -415,7 +415,7 @@ const Tasks = () => {
             <p className="text-center py-4">Loading tasks...</p>
           ) : filteredTasks.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-[650px] w-full">
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="px-4 py-2 text-left">Task Title</th>

@@ -96,26 +96,26 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen p-6">
-        <div className="mb-8">
-          <p className="text-sm uppercase tracking-[0.2em] text-sky-700">Overview</p>
-          <h1 className="mt-2 text-4xl font-semibold text-slate-900">Admin dashboard</h1>
-          <p className="mt-2 text-slate-600">Live view of workforce activity and delivery progress.</p>
+      <div className="min-h-screen p-3 sm:p-6">
+        <div className="mb-6 sm:mb-8">
+          <p className="text-xs sm:text-sm uppercase tracking-[0.2em] text-sky-700">Overview</p>
+          <h1 className="mt-1 sm:mt-2 text-2xl sm:text-4xl font-semibold text-slate-900">Admin dashboard</h1>
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-600">Live view of workforce activity and delivery progress.</p>
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-6 sm:mb-8 grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
           {statCards.map((stat) => (
-            <div key={stat.title} className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <p className="text-sm font-medium text-slate-500">{stat.title}</p>
-              <p className="mt-4 text-4xl font-semibold text-slate-900">{stat.value}</p>
+            <div key={stat.title} className="rounded-xl sm:rounded-[1.5rem] bg-white p-3.5 sm:p-6 shadow-sm ring-1 ring-slate-200">
+              <p className="text-xs sm:text-sm font-medium text-slate-500">{stat.title}</p>
+              <p className="mt-2 sm:mt-4 text-2xl sm:text-4xl font-semibold text-slate-900">{stat.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-xl font-semibold text-slate-900">Weekly attendance</h2>
-            <div className="mt-6 h-80">
+        <div className="mb-6 sm:mb-8 grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+          <div className="rounded-xl sm:rounded-[1.5rem] bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900">Weekly attendance</h2>
+            <div className="mt-4 sm:mt-6 h-64 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={attendanceData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -131,13 +131,13 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-xl font-semibold text-slate-900">Task distribution</h2>
-            <div className="mt-6 h-80">
+          <div className="rounded-xl sm:rounded-[1.5rem] bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900">Task distribution</h2>
+            <div className="mt-4 sm:mt-6 h-64 sm:h-80">
               {taskDistribution.some((t) => t.value > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={taskDistribution} dataKey="value" nameKey="name" outerRadius={110} label>
+                    <Pie data={taskDistribution} dataKey="value" nameKey="name" outerRadius={90} label>
                       {taskDistribution.map((entry) => (
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
@@ -154,16 +154,16 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-[1.5rem] bg-gradient-to-r from-sky-600 to-sky-800 p-6 text-white">
-            <p className="text-sm uppercase tracking-[0.2em] text-sky-100">Delivery</p>
-            <p className="mt-4 text-5xl font-semibold">{stats.completionRate}%</p>
-            <p className="mt-2 text-sky-100">Project completion rate</p>
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
+          <div className="rounded-xl sm:rounded-[1.5rem] bg-gradient-to-r from-sky-600 to-sky-800 p-5 sm:p-6 text-white">
+            <p className="text-xs sm:text-sm uppercase tracking-[0.2em] text-sky-100">Delivery</p>
+            <p className="mt-2 sm:mt-4 text-3xl sm:text-5xl font-semibold">{stats.completionRate}%</p>
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-sky-100">Project completion rate</p>
           </div>
-          <div className="rounded-[1.5rem] bg-gradient-to-r from-amber-500 to-orange-600 p-6 text-white">
-            <p className="text-sm uppercase tracking-[0.2em] text-amber-100">Projects</p>
-            <p className="mt-4 text-5xl font-semibold">{stats.totalProjects}</p>
-            <p className="mt-2 text-amber-100">Active projects</p>
+          <div className="rounded-xl sm:rounded-[1.5rem] bg-gradient-to-r from-amber-500 to-orange-600 p-5 sm:p-6 text-white">
+            <p className="text-xs sm:text-sm uppercase tracking-[0.2em] text-amber-100">Projects</p>
+            <p className="mt-2 sm:mt-4 text-3xl sm:text-5xl font-semibold">{stats.totalProjects}</p>
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-amber-100">Active projects</p>
           </div>
         </div>
       </div>

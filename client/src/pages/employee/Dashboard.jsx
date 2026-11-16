@@ -62,35 +62,35 @@ const Dashboard = () => {
 
   return (
     <EmployeeLayout>
-      <div className="p-6">
-        <div className="mb-8 rounded-[2rem] bg-[linear-gradient(135deg,#0f766e,#0f172a)] p-8 text-white">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+      <div className="p-3 sm:p-6">
+        <div className="mb-6 sm:mb-8 rounded-2xl sm:rounded-[2rem] bg-[linear-gradient(135deg,#0f766e,#0f172a)] p-5 sm:p-8 text-white">
+          <div className="flex flex-col gap-4 sm:gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-teal-100">Today</p>
-              <h1 className="mt-3 text-4xl font-semibold">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.2em] text-teal-100">Today</p>
+              <h1 className="mt-2 sm:mt-3 text-2xl sm:text-4xl font-semibold">
                 {greeting}, {user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Employee"}
               </h1>
-              <p className="mt-2 text-teal-100">{format(new Date(), "EEEE, MMMM do, yyyy")}</p>
+              <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-teal-100">{format(new Date(), "EEEE, MMMM do, yyyy")}</p>
             </div>
-            <div className="rounded-2xl bg-white/10 p-4 text-center">
-              <FaCalendarAlt className="mx-auto text-2xl" />
-              <p className="mt-2 text-sm">{format(new Date(), "MMM dd")}</p>
+            <div className="self-start md:self-auto rounded-xl sm:rounded-2xl bg-white/10 px-4 py-2.5 sm:p-4 text-center">
+              <FaCalendarAlt className="mx-auto text-xl sm:text-2xl" />
+              <p className="mt-1 sm:mt-2 text-xs sm:text-sm">{format(new Date(), "MMM dd")}</p>
             </div>
           </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-6 sm:mb-8 grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
           {cards.map((card) => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-stone-200">
+              <div key={card.label} className="rounded-xl sm:rounded-[1.5rem] bg-white p-3.5 sm:p-6 shadow-sm ring-1 ring-stone-200">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm text-stone-500">{card.label}</p>
-                    <p className="mt-3 text-4xl font-semibold text-stone-900">{card.value}</p>
+                    <p className="text-xs sm:text-sm text-stone-500">{card.label}</p>
+                    <p className="mt-1.5 sm:mt-3 text-xl sm:text-4xl font-semibold text-stone-900">{card.value}</p>
                   </div>
-                  <div className={`rounded-full p-3 ${card.tone}`}>
-                    <Icon className="text-xl" />
+                  <div className={`rounded-full p-2 sm:p-3 ${card.tone}`}>
+                    <Icon className="text-base sm:text-xl" />
                   </div>
                 </div>
               </div>
@@ -98,7 +98,7 @@ const Dashboard = () => {
           })}
         </div>
 
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <ClockInOut attendance={attendance} onUpdate={fetchEmployeeData} />
         </div>
 

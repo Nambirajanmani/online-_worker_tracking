@@ -150,54 +150,54 @@ const Tracking = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="p-3 sm:p-6">
+        <div className="mb-4 sm:mb-6 flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-semibold text-slate-900">Attendance Tracking</h1>
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900">Attendance Tracking</h1>
+              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-emerald-100 px-2.5 sm:px-3 py-0.5 sm:py-1 text-xs font-semibold text-emerald-700">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
                 Live
               </span>
             </div>
-            <p className="mt-1 text-slate-600">Real-time employee clock-in and clock-out activity.</p>
+            <p className="mt-1 text-xs sm:text-sm text-slate-600">Real-time employee clock-in and clock-out activity.</p>
             {lastUpdated && <p className="mt-1 text-xs text-slate-500">Last updated: {lastUpdated.toLocaleTimeString()}</p>}
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" className="btn-secondary" onClick={fetchTracking}><FaSync className="mr-2" /> Refresh</button>
-            <button type="button" className="btn-primary" onClick={handleExport}><FaDownload className="mr-2" /> Export Report</button>
+          <div className="flex flex-wrap gap-2.5 sm:gap-3">
+            <button type="button" className="btn-secondary !px-4 !py-2 !text-sm" onClick={fetchTracking}><FaSync className="mr-2" /> Refresh</button>
+            <button type="button" className="btn-primary !px-4 !py-2 !text-sm" onClick={handleExport}><FaDownload className="mr-2" /> Export Report</button>
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           <StatCard label="Present Today" value={stats.present} icon={FaUserCheck} />
           <StatCard label="Currently Working" value={stats.working} icon={FaUserClock} />
           <StatCard label="Clocked Out" value={stats.clockedOut} icon={FaUserMinus} />
           <StatCard label="Late Arrivals" value={stats.lateArrivals} icon={FaUserTimes} />
         </div>
 
-        <div className="mb-6 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+        <div className="mb-4 sm:mb-6 rounded-xl sm:rounded-[1.5rem] bg-white p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200">
+          <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-end">
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Search employee</label>
+              <label className="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Search employee</label>
               <div className="relative">
                 <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Name or employee ID" className="input-field pl-11" />
+                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Name or employee ID" className="input-field pl-11 text-sm sm:text-base !py-2.5 sm:!py-3" />
               </div>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Date</label>
+              <label className="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Date</label>
               <div className="relative">
                 <FaCalendarAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setTodayOnly(e.target.value === today()); }} className="input-field pl-11" />
+                <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setTodayOnly(e.target.value === today()); }} className="input-field pl-11 text-sm sm:text-base !py-2.5 sm:!py-3" />
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <div className="flex flex-wrap gap-2.5 sm:gap-3">
+              <label className="flex items-center gap-2 rounded-xl sm:rounded-2xl bg-slate-50 px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-700">
                 <input type="checkbox" checked={todayOnly} onChange={(e) => { setTodayOnly(e.target.checked); if (e.target.checked) setSelectedDate(today()); }} />
                 Today only
               </label>
-              <label className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <label className="flex items-center gap-2 rounded-xl sm:rounded-2xl bg-amber-50 px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-amber-900">
                 <input type="checkbox" checked={lateOnly} onChange={(e) => setLateOnly(e.target.checked)} />
                 Late employees
               </label>
@@ -205,15 +205,15 @@ const Tracking = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 xl:col-span-2">
-            <div className="border-b border-slate-200 px-6 py-4"><h2 className="text-lg font-semibold text-slate-900">Live Activity</h2></div>
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
+          <div className="overflow-hidden rounded-xl sm:rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 xl:col-span-2">
+            <div className="border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4"><h2 className="text-base sm:text-lg font-semibold text-slate-900">Live Activity</h2></div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
+              <table className="min-w-[650px] w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
                     {["Employee", "Employee ID", "Clock In", "Clock Out", "Hours", "Status", "Date"].map((heading) => (
-                      <th key={heading} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">{heading}</th>
+                      <th key={heading} className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">{heading}</th>
                     ))}
                   </tr>
                 </thead>

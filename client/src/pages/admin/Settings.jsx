@@ -412,36 +412,38 @@ const AdminSettings = () => {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           {/* Submenu Tabs */}
           <div className="lg:col-span-1">
-            <div className="sticky top-6 space-y-1 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
-              <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400">Settings Menu</p>
-              {navigationTabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex w-full items-start gap-3 rounded-xl p-3 text-left transition ${
-                      isActive
-                        ? "bg-sky-50 text-sky-900 ring-1 ring-sky-200"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div
-                      className={`mt-0.5 rounded-lg p-2 ${
-                        isActive ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600"
+            <div className="sticky top-6 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
+              <p className="hidden lg:block px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400">Settings Menu</p>
+              <div className="flex flex-row overflow-x-auto lg:flex-col lg:space-y-1 gap-2 lg:gap-0 pb-1 lg:pb-0">
+                {navigationTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex flex-shrink-0 items-center lg:items-start gap-2.5 sm:gap-3 rounded-xl p-2.5 sm:p-3 text-left transition ${
+                        isActive
+                          ? "bg-sky-50 text-sky-900 ring-1 ring-sky-200"
+                          : "text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold">{tab.label}</div>
-                      <div className="text-xs text-slate-500 line-clamp-1">{tab.desc}</div>
-                    </div>
-                  </button>
-                );
-              })}
+                      <div
+                        className={`rounded-lg p-2 ${
+                          isActive ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs sm:text-sm font-semibold whitespace-nowrap lg:whitespace-normal">{tab.label}</div>
+                        <div className="hidden lg:block text-xs text-slate-500 line-clamp-1">{tab.desc}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

@@ -443,55 +443,55 @@ const TimeTracker = () => {
 
   return (
     <EmployeeLayout>
-      <div className="mx-auto max-w-5xl space-y-6 p-6">
-        <div className="rounded-[1.5rem] bg-white p-8 shadow-lg ring-1 ring-stone-200">
-          <h1 className="mb-8 text-center text-3xl font-semibold text-stone-900">Time Tracker</h1>
+      <div className="mx-auto max-w-5xl space-y-4 sm:space-y-6 p-3 sm:p-6">
+        <div className="rounded-2xl sm:rounded-[1.5rem] bg-white p-4 sm:p-8 shadow-lg ring-1 ring-stone-200">
+          <h1 className="mb-6 sm:mb-8 text-center text-2xl sm:text-3xl font-semibold text-stone-900">Time Tracker</h1>
 
           {hasActiveTimer && (
-            <div className="mb-8 rounded-[1.25rem] border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-4">
+            <div className="mb-6 sm:mb-8 rounded-xl sm:rounded-[1.25rem] border border-emerald-200 bg-emerald-50 p-4 sm:p-6 shadow-sm">
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">Running Timer</p>
-                  <h2 className="mt-1 text-2xl font-bold text-stone-900">Current Running Task</h2>
+                  <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">Running Timer</p>
+                  <h2 className="mt-1 text-xl sm:text-2xl font-bold text-stone-900">Current Running Task</h2>
                 </div>
-                <span className={`rounded-full px-4 py-2 text-sm font-semibold ring-1 ${runningStatusTone}`}>
+                <span className={`inline-flex self-start sm:self-auto rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-semibold ring-1 ${runningStatusTone}`}>
                   Status: {activeTimer.status}
                 </span>
               </div>
 
-              <div className="grid gap-4 rounded-2xl bg-white p-5 ring-1 ring-emerald-100 md:grid-cols-2">
+              <div className="grid gap-3 sm:gap-4 rounded-xl sm:rounded-2xl bg-white p-4 sm:p-5 ring-1 ring-emerald-100 md:grid-cols-2">
                 <div>
-                  <p className="text-sm font-medium text-stone-500">Task Name</p>
-                  <p className="mt-1 text-lg font-semibold text-stone-900">{activeTimer.task_title}</p>
+                  <p className="text-xs sm:text-sm font-medium text-stone-500">Task Name</p>
+                  <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-semibold text-stone-900">{activeTimer.task_title}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-stone-500">Project</p>
-                  <p className="mt-1 text-lg font-semibold text-stone-900">{activeTimer.project_name}</p>
+                  <p className="text-xs sm:text-sm font-medium text-stone-500">Project</p>
+                  <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-semibold text-stone-900">{activeTimer.project_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-stone-500">Started At</p>
-                  <p className="mt-1 text-lg font-semibold text-stone-900">{formatTime(activeTimer.start_time)}</p>
+                  <p className="text-xs sm:text-sm font-medium text-stone-500">Started At</p>
+                  <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-semibold text-stone-900">{formatTime(activeTimer.start_time)}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-stone-500">Elapsed Time</p>
-                  <p className="mt-1 font-mono text-2xl font-bold tracking-wider text-emerald-700">
+                  <p className="text-xs sm:text-sm font-medium text-stone-500">Elapsed Time</p>
+                  <p className="mt-0.5 sm:mt-1 font-mono text-xl sm:text-2xl font-bold tracking-wider text-emerald-700">
                     {formatDuration(displayElapsedSeconds)}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs sm:text-sm text-amber-900">
                 <p className="font-semibold">
                   You already have an active timer running for: "{activeTimer.task_title}"
                 </p>
-                <p className="mt-1 text-sm">Please stop or pause it before starting another task.</p>
+                <p className="mt-1">Please stop or pause it before starting another task.</p>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-3">
+              <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row flex-wrap gap-2.5 sm:gap-3">
                 {activeTimer.status === "RUNNING" && (
                   <button
                     onClick={handlePause}
-                    className="rounded-xl bg-orange-500 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-orange-600"
+                    className="w-full sm:w-auto rounded-xl bg-orange-500 px-6 py-2.5 sm:py-3 text-sm font-bold text-white shadow-md transition hover:bg-orange-600"
                   >
                     Pause Timer
                   </button>
@@ -500,7 +500,7 @@ const TimeTracker = () => {
                 {(activeTimer.status === "PAUSED" || activeTimer.status === "IDLE") && (
                   <button
                     onClick={handleResume}
-                    className="rounded-xl bg-green-600 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-green-700"
+                    className="w-full sm:w-auto rounded-xl bg-green-600 px-6 py-2.5 sm:py-3 text-sm font-bold text-white shadow-md transition hover:bg-green-700"
                   >
                     Resume Timer
                   </button>
@@ -508,7 +508,7 @@ const TimeTracker = () => {
 
                 <button
                   onClick={handleStop}
-                  className="rounded-xl bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-red-700"
+                  className="w-full sm:w-auto rounded-xl bg-red-600 px-6 py-2.5 sm:py-3 text-sm font-bold text-white shadow-md transition hover:bg-red-700"
                 >
                   Stop Timer
                 </button>
@@ -517,30 +517,30 @@ const TimeTracker = () => {
           )}
 
           {!hasActiveTimer && completedSummary && (
-            <div className="mb-8 rounded-[1.25rem] border border-sky-200 bg-sky-50 p-6 shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">Task Completed</p>
-              <h2 className="mt-1 text-2xl font-bold text-stone-900">Completed Timer Summary</h2>
+            <div className="mb-6 sm:mb-8 rounded-xl sm:rounded-[1.25rem] border border-sky-200 bg-sky-50 p-4 sm:p-6 shadow-sm">
+              <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">Task Completed</p>
+              <h2 className="mt-1 text-xl sm:text-2xl font-bold text-stone-900">Completed Timer Summary</h2>
 
-              <div className="mt-4 grid gap-4 rounded-2xl bg-white p-5 ring-1 ring-sky-100 md:grid-cols-2">
+              <div className="mt-4 grid gap-3 sm:gap-4 rounded-xl sm:rounded-2xl bg-white p-4 sm:p-5 ring-1 ring-sky-100 md:grid-cols-2">
                 <div>
-                  <p className="text-sm font-medium text-stone-500">Task</p>
-                  <p className="mt-1 text-lg font-semibold text-stone-900">{completedSummary.task_title}</p>
+                  <p className="text-xs sm:text-sm font-medium text-stone-500">Task</p>
+                  <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-semibold text-stone-900">{completedSummary.task_title}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-stone-500">Status</p>
-                  <p className="mt-1 text-lg font-semibold text-sky-700">{completedSummary.status}</p>
+                  <p className="text-xs sm:text-sm font-medium text-stone-500">Status</p>
+                  <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-semibold text-sky-700">{completedSummary.status}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-stone-500">Start Time</p>
-                  <p className="mt-1 text-lg font-semibold text-stone-900">{completedSummary.start_time}</p>
+                  <p className="text-xs sm:text-sm font-medium text-stone-500">Start Time</p>
+                  <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-semibold text-stone-900">{completedSummary.start_time}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-stone-500">End Time</p>
-                  <p className="mt-1 text-lg font-semibold text-stone-900">{completedSummary.end_time}</p>
+                  <p className="text-xs sm:text-sm font-medium text-stone-500">End Time</p>
+                  <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-semibold text-stone-900">{completedSummary.end_time}</p>
                 </div>
                 <div className="md:col-span-2">
-                  <p className="text-sm font-medium text-stone-500">Total Time</p>
-                  <p className="mt-1 font-mono text-3xl font-bold tracking-wider text-sky-700">
+                  <p className="text-xs sm:text-sm font-medium text-stone-500">Total Time</p>
+                  <p className="mt-0.5 sm:mt-1 font-mono text-2xl sm:text-3xl font-bold tracking-wider text-sky-700">
                     {completedSummary.total_duration}
                   </p>
                 </div>
@@ -548,15 +548,15 @@ const TimeTracker = () => {
             </div>
           )}
 
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             {loading ? (
               <div className="flex items-center justify-center py-6">
-                <p className="text-lg text-gray-600">Loading tasks...</p>
+                <p className="text-base sm:text-lg text-gray-600">Loading tasks...</p>
               </div>
             ) : tasks.length === 0 ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-6">
                 <p className="font-medium text-amber-800">No assigned tasks found</p>
-                <p className="mt-1 text-sm text-amber-700">Contact your manager to get tasks assigned</p>
+                <p className="mt-1 text-xs sm:text-sm text-amber-700">Contact your manager to get tasks assigned</p>
               </div>
             ) : (
               <>
@@ -564,7 +564,7 @@ const TimeTracker = () => {
                   value={selectedTaskId}
                   onChange={(e) => handleTaskSelect(e.target.value)}
                   disabled={hasActiveTimer}
-                  className="w-full max-w-md rounded-xl border border-gray-300 px-4 py-3 shadow-sm focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  className="w-full max-w-md rounded-xl border border-gray-300 px-3.5 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base shadow-sm focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
                 >
                   <option value="">-- Select a Task --</option>
                   {tasks.map((task) => (
@@ -575,8 +575,8 @@ const TimeTracker = () => {
                 </select>
 
                 {selectedTaskDetails && (
-                  <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                    <div className="text-sm">
+                  <div className="mt-4 sm:mt-6 rounded-lg border border-blue-200 bg-blue-50 p-3.5 sm:p-4">
+                    <div className="text-xs sm:text-sm">
                       <p className="font-semibold text-blue-900">Task: {selectedTaskDetails.title}</p>
                       <p className="text-blue-700">Project: {selectedTaskDetails.project}</p>
                       <p className="text-blue-600">
@@ -589,16 +589,16 @@ const TimeTracker = () => {
             )}
           </div>
 
-          <div className="mb-10 text-center font-mono text-7xl font-bold tracking-widest text-gray-800 drop-shadow-sm">
+          <div className="mb-8 sm:mb-10 text-center font-mono text-4xl sm:text-6xl md:text-7xl font-bold tracking-wider sm:tracking-widest text-gray-800 drop-shadow-sm">
             {formatDuration(displayElapsedSeconds)}
           </div>
 
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center">
             {!hasActiveTimer && (
               <button
                 onClick={handleStart}
                 disabled={!selectedTaskId || loading}
-                className="rounded-xl bg-blue-600 px-10 py-4 text-lg font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                className="w-full sm:w-auto rounded-xl bg-blue-600 px-8 py-3.5 sm:px-10 sm:py-4 text-base sm:text-lg font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
               >
                 Start Timer
               </button>
@@ -607,19 +607,19 @@ const TimeTracker = () => {
         </div>
 
         {hasActiveTimer && (
-          <div className="rounded-[1.5rem] bg-white p-8 shadow-sm ring-1 ring-stone-200">
-            <h2 className="mb-4 text-xl font-semibold">Add Work Notes</h2>
-            <div className="flex gap-3">
+          <div className="rounded-2xl sm:rounded-[1.5rem] bg-white p-4 sm:p-8 shadow-sm ring-1 ring-stone-200">
+            <h2 className="mb-3 sm:mb-4 text-lg sm:text-xl font-semibold">Add Work Notes</h2>
+            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="What are you working on right now?"
-                className="flex-1 rounded-lg border px-4 py-3 focus:ring-2 focus:ring-blue-500"
+                className="flex-1 rounded-lg border px-3.5 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base focus:ring-2 focus:ring-blue-500"
               />
               <button
                 onClick={handleAddNote}
-                className="rounded-lg bg-gray-800 px-6 py-3 font-medium text-white transition hover:bg-gray-900"
+                className="rounded-lg bg-gray-800 px-6 py-2.5 sm:py-3 font-medium text-sm sm:text-base text-white transition hover:bg-gray-900"
               >
                 Add Note
               </button>
@@ -627,19 +627,19 @@ const TimeTracker = () => {
           </div>
         )}
 
-        <div className="rounded-[1.5rem] bg-white p-8 shadow-sm ring-1 ring-stone-200">
-          <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="rounded-2xl sm:rounded-[1.5rem] bg-white p-4 sm:p-8 shadow-sm ring-1 ring-stone-200">
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Today</p>
-              <h2 className="text-2xl font-bold text-stone-900">Today&apos;s Time Logs</h2>
+              <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Today</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Today&apos;s Time Logs</h2>
             </div>
-            <div className="rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">
+            <div className="self-start sm:self-auto rounded-full bg-stone-100 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-stone-700">
               Total tracked: {totalTrackedToday}
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
+          <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+            <table className="min-w-[520px] w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-stone-200 text-xs uppercase tracking-[0.18em] text-stone-500">
                   <th className="px-4 py-3">Task</th>

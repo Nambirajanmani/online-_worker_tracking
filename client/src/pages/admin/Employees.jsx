@@ -124,19 +124,19 @@ const Employees = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="p-3 sm:p-6">
+        <div className="mb-4 sm:mb-6 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900">Employees</h1>
-            <p className="mt-1 text-slate-600">Manage employee records, onboarding details, and status.</p>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900">Employees</h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-600">Manage employee records, onboarding details, and status.</p>
           </div>
-          <button type="button" className="btn-primary inline-flex items-center" onClick={() => setShowModal(true)}>
+          <button type="button" className="btn-primary inline-flex items-center justify-center !px-5 !py-2.5 !text-sm" onClick={() => setShowModal(true)}>
             <FaPlus className="mr-2" /> Add Employee
           </button>
         </div>
 
-        <div className="mb-6 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
-          <div className="flex flex-col gap-4 md:flex-row">
+        <div className="mb-4 sm:mb-6 rounded-xl sm:rounded-[1.5rem] bg-white p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200">
+          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row">
             <div className="relative flex-1">
               <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -144,24 +144,24 @@ const Employees = () => {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search by name, email, or employee ID"
-                className="input-field pl-11"
+                className="input-field pl-11 text-sm sm:text-base !py-2.5 sm:!py-3"
               />
             </div>
-            <button type="button" className="btn-secondary inline-flex items-center justify-center">
+            <button type="button" className="btn-secondary inline-flex items-center justify-center !px-4 !py-2.5 !text-sm">
               <FaFilter className="mr-2" /> Filter
             </button>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200">
+        <div className="overflow-hidden rounded-xl sm:rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
+            <table className="min-w-[650px] w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
                   {["Employee", "Employee ID", "Department", "Position", "Email", "Status", "Actions"].map((heading) => (
                     <th
                       key={heading}
-                      className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.15em] text-slate-500"
+                      className="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs font-semibold uppercase tracking-[0.15em] text-slate-500"
                     >
                       {heading}
                     </th>
@@ -178,36 +178,36 @@ const Employees = () => {
                 ) : filteredEmployees.length ? (
                   filteredEmployees.map((employee) => (
                     <tr key={employee.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-600 font-semibold text-white">
+                          <div className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-sky-600 font-semibold text-white text-xs sm:text-sm flex-shrink-0">
                             {employee.first_name?.[0]}
                             {employee.last_name?.[0]}
                           </div>
                           <div>
-                            <p className="font-medium text-slate-900">
+                            <p className="font-medium text-sm sm:text-base text-slate-900">
                               {employee.first_name} {employee.last_name}
                             </p>
-                            <p className="text-sm text-slate-500">{employee.employee_code || "No code"}</p>
+                            <p className="text-xs sm:text-sm text-slate-500">{employee.employee_code || "No code"}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{employee.employee_code || "N/A"}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{employee.department || "N/A"}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{employee.position || "N/A"}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{employee.email}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-slate-600">{employee.employee_code || "N/A"}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-slate-600">{employee.department || "N/A"}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-slate-600">{employee.position || "N/A"}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-slate-600">{employee.email}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(employee)}
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold transition-colors hover:opacity-80 ${
+                          className={`inline-flex rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 text-xs font-semibold transition-colors hover:opacity-80 ${
                             employee.is_active ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
                           }`}
                         >
                           {employee.is_active ? "Active" : "Inactive"}
                         </button>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <div className="flex items-center gap-3">
                           <button type="button" title="View" className="text-emerald-600 hover:text-emerald-700" onClick={() => setViewingEmployee(employee)}>
                             <FaEye />
@@ -235,13 +235,13 @@ const Employees = () => {
         </div>
 
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-            <div className="w-full max-w-3xl rounded-[1.5rem] bg-white p-6 shadow-2xl">
-              <h2 className="text-2xl font-semibold text-slate-900">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 sm:p-4">
+            <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-[1.5rem] bg-white p-4 sm:p-6 shadow-2xl">
+              <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
                 {editingEmployee ? "Edit employee" : "Add employee"}
               </h2>
-              <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <form onSubmit={handleSubmit} noValidate className="mt-4 sm:mt-6 space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {[
                     ["Employee ID", "employeeCode", "text"],
                     ["First Name", "firstName", "text"],
@@ -325,11 +325,11 @@ const Employees = () => {
         )}
 
         {viewingEmployee && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-2xl rounded-[1.5rem] bg-slate-900 p-6 shadow-2xl border border-slate-800">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-white">Employee Details</h2>
-                <button type="button" className="text-slate-400 hover:text-white text-xl" onClick={() => setViewingEmployee(null)}>&times;</button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-3 sm:p-4 backdrop-blur-sm">
+            <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-[1.5rem] bg-slate-900 p-4 sm:p-6 shadow-2xl border border-slate-800">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-semibold text-white">Employee Details</h2>
+                <button type="button" className="text-slate-400 hover:text-white text-2xl" onClick={() => setViewingEmployee(null)}>&times;</button>
               </div>
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 text-xl font-semibold text-white shadow-lg shadow-sky-500/20">
