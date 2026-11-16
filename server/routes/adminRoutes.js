@@ -23,6 +23,12 @@ const {
 } = require("../controllers/leaveController");
 const { getTasks, getTaskStats } = require("../controllers/taskController");
 const { getProjects } = require("../controllers/projectController");
+const {
+  getAllSettings,
+  updateCategorySettings,
+  resetCategorySettings,
+  getAuditLogs
+} = require("../controllers/settingsController");
 
 const router = express.Router();
 
@@ -41,5 +47,11 @@ router.put("/leaves/:id", protect, adminOnly, updateLeaveStatus);
 router.get("/tasks", protect, adminOnly, getTasks);
 router.get("/tasks/stats", protect, adminOnly, getTaskStats);
 router.get("/projects", protect, adminOnly, getProjects);
+
+// Settings routes
+router.get("/settings", protect, adminOnly, getAllSettings);
+router.put("/settings/:category", protect, adminOnly, updateCategorySettings);
+router.post("/settings/reset", protect, adminOnly, resetCategorySettings);
+router.get("/settings/audit-logs", protect, adminOnly, getAuditLogs);
 
 module.exports = router;

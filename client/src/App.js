@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
@@ -28,21 +28,56 @@ import LiveMonitoring from "./pages/admin/LiveMonitoring";
 
 const ProtectedRoute = ({ allowedRoles, children }) => {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-  if (!isAuthenticated || !user || !user.role) {
+  const role = user?.role ? String(user.role).toLowerCase() : null;
+  const department = user?.department ? String(user.department).toLowerCase() : null;
+  const isAdmin = role === "admin" || department === "management";
+
+  if (!isAuthenticated || !user || !role) {
     if (isAuthenticated) {
       dispatch(logout());
     }
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    const isAdmin = user.role === "admin" || user.department === "Management";
-    const fallback = isAdmin ? "/admin" : "/employee";
-    // Show access denied message
-    toast.error("Access Denied: You don't have permission to access this page.");
-    return <Navigate to={fallback} replace />;
+  if (allowedRoles && allowedRoles.length > 0) {
+    const normalizedAllowed = allowedRoles.map((r) => String(r).toLowerCase());
+    const hasPermission =
+      normalizedAllowed.includes(role) ||
+      (isAdmin && normalizedAllowed.includes("employee"));
+
+    if (!hasPermission) {
+      const fallback = isAdmin ? "/admin" : "/employee";
+      if (location.pathname !== fallback) {
+        return <Navigate to={fallback} replace />;
+      }
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-stone-100 p-6 text-center">
+          <div className="max-w-md rounded-2xl bg-white p-8 shadow-sm ring-1 ring-stone-200">
+            <h2 className="text-2xl font-bold text-rose-600">Access Denied</h2>
+            <p className="mt-2 text-stone-600">
+              You do not have permission to view this page with your current role ({role}).
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Link
+                to={fallback}
+                className="rounded-full bg-sky-600 px-6 py-2.5 font-semibold text-white transition hover:bg-sky-700"
+              >
+                Go to Dashboard
+              </Link>
+              <button
+                onClick={() => dispatch(logout())}
+                className="rounded-full bg-stone-200 px-6 py-2.5 font-semibold text-stone-800 transition hover:bg-stone-300"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 
   return children;
@@ -52,7 +87,10 @@ const HomeRedirect = () => {
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-  if (!isAuthenticated || !user || !user.role) {
+  const role = user?.role ? String(user.role).toLowerCase() : null;
+  const department = user?.department ? String(user.department).toLowerCase() : null;
+
+  if (!isAuthenticated || !user || !role) {
     if (isAuthenticated) {
       dispatch(logout());
     }
@@ -60,7 +98,7 @@ const HomeRedirect = () => {
   }
 
   // Management department users should go to Admin Dashboard
-  const isAdmin = user.role === "admin" || user.department === "Management";
+  const isAdmin = role === "admin" || department === "management";
   return <Navigate to={isAdmin ? "/admin" : "/employee"} replace />;
 };
 

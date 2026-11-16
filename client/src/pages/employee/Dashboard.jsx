@@ -80,19 +80,22 @@ const Dashboard = () => {
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-          {cards.map((card) => (
-            <div key={card.label} className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-stone-200">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-stone-500">{card.label}</p>
-                  <p className="mt-3 text-4xl font-semibold text-stone-900">{card.value}</p>
-                </div>
-                <div className={`rounded-full p-3 ${card.tone}`}>
-                  <card.icon className="text-xl" />
+          {cards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.label} className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-stone-200">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-stone-500">{card.label}</p>
+                    <p className="mt-3 text-4xl font-semibold text-stone-900">{card.value}</p>
+                  </div>
+                  <div className={`rounded-full p-3 ${card.tone}`}>
+                    <Icon className="text-xl" />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mb-8">

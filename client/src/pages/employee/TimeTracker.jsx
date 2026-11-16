@@ -6,8 +6,27 @@ import toast from "react-hot-toast";
 
 const IDLE_MINUTES = 5;
 
+const parseDurationSeconds = (val) => {
+  if (typeof val === "number" && Number.isFinite(val)) return Math.max(0, val);
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed.includes(":")) {
+      const parts = trimmed.split(":").map(Number);
+      if (parts.length === 3 && parts.every((n) => !Number.isNaN(n))) {
+        return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+      }
+      if (parts.length === 2 && parts.every((n) => !Number.isNaN(n))) {
+        return Math.max(0, parts[0] * 60 + parts[1]);
+      }
+    }
+    const num = Number(trimmed);
+    if (!Number.isNaN(num) && Number.isFinite(num)) return Math.max(0, num);
+  }
+  return 0;
+};
+
 const formatDuration = (seconds) => {
-  const safeSeconds = Math.max(0, Number(seconds || 0));
+  const safeSeconds = parseDurationSeconds(seconds);
   const h = Math.floor(safeSeconds / 3600).toString().padStart(2, "0");
   const m = Math.floor((safeSeconds % 3600) / 60).toString().padStart(2, "0");
   const s = Math.floor(safeSeconds % 60).toString().padStart(2, "0");
@@ -16,8 +35,15 @@ const formatDuration = (seconds) => {
 
 const formatTime = (value) => {
   if (!value) return "--";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.includes("AM") || trimmed.includes("PM")) return trimmed;
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) return trimmed;
+  }
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "--";
+  if (Number.isNaN(parsed.getTime())) {
+    return typeof value === "string" && value.trim() ? value : "--";
+  }
   return parsed.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -27,7 +53,12 @@ const formatTime = (value) => {
 
 const isToday = (value) => {
   if (!value) return false;
+  // If it's already a time string without date (e.g. "05:25 PM"), assume it occurred today
+  if (typeof value === "string" && (value.includes("AM") || value.includes("PM") || /^\d{1,2}:\d{2}/.test(value)) && !value.includes("-")) {
+    return true;
+  }
   const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return true;
   const now = new Date();
   return (
     parsed.getFullYear() === now.getFullYear() &&
@@ -54,18 +85,18 @@ const buildCompletedSummary = (session) => ({
   status: session.status || "COMPLETED",
 });
 
-const normalizeCompletedLog = (completedTimer) => ({
-  id: completedTimer.id || completedTimer.timer_id,
-  task_name: completedTimer.task_title,
-  task_title: completedTimer.task_title,
-  start_time: completedTimer.raw?.start_time || completedTimer.start_time,
-  end_time: completedTimer.raw?.end_time || completedTimer.end_time,
-  total_duration:
-    typeof completedTimer.raw?.total_duration === "number"
-      ? completedTimer.raw.total_duration
-      : completedTimer.total_duration,
-  status: String(completedTimer.status || "COMPLETED").toLowerCase(),
-});
+const normalizeCompletedLog = (completedTimer, rawSession = null) => {
+  const raw = rawSession || completedTimer.raw || {};
+  return {
+    id: completedTimer.id || completedTimer.timer_id || raw.id,
+    task_name: completedTimer.task_title || completedTimer.task_name || raw.task_name || "Task",
+    task_title: completedTimer.task_title || completedTimer.task_name || raw.task_name || "Task",
+    start_time: raw.start_time || completedTimer.start_time,
+    end_time: raw.end_time || completedTimer.end_time,
+    total_duration: raw.total_duration !== undefined ? raw.total_duration : completedTimer.total_duration,
+    status: String(completedTimer.status || raw.status || "COMPLETED").toLowerCase(),
+  };
+};
 
 const TimeTracker = () => {
   const [tasks, setTasks] = useState([]);
@@ -90,7 +121,7 @@ const TimeTracker = () => {
 
   const getEmployeeId = useCallback(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    return user.employee_id || user.id || null;
+    return user.employeeId || user.employee_id || user.id || null;
   }, []);
 
   const syncSelectedTaskDetails = useCallback((taskId, taskList) => {
@@ -359,7 +390,8 @@ const TimeTracker = () => {
       const res = await api.post("/employee/stop-timer", {}, { headers: getAuthHeaders() });
       if (res.data.success) {
         const completedTimer = res.data.data || null;
-        const normalizedCompletedLog = completedTimer ? normalizeCompletedLog(completedTimer) : null;
+        const rawSession = res.data.session || null;
+        const normalizedCompletedLog = completedTimer ? normalizeCompletedLog(completedTimer, rawSession) : null;
 
         setCompletedSummary(completedTimer ? buildCompletedSummary(completedTimer) : null);
         if (normalizedCompletedLog) {
@@ -406,7 +438,7 @@ const TimeTracker = () => {
   const totalTrackedToday = formatDuration(
     todayLogs
       .filter((session) => ["completed", "stopped"].includes(String(session.status || "").toLowerCase()))
-      .reduce((sum, session) => sum + Number(session.total_duration || 0), 0)
+      .reduce((sum, session) => sum + parseDurationSeconds(session.total_duration || session.active_duration), 0)
   );
 
   return (

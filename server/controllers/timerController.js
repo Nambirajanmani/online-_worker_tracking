@@ -62,21 +62,19 @@ const formatDurationDisplay = (seconds) => {
 const formatCompletedTimerResponse = (session) => ({
   id: session.id || session.timer_id,
   task_title: session.task_title || session.task_name || "Untitled task",
-  start_time:
-    typeof session.start_time === "string" && session.start_time.includes(":") && !session.start_time.includes("T")
-      ? session.start_time
-      : formatTimeDisplay(session.start_time),
-  end_time:
-    typeof session.end_time === "string" && session.end_time.includes(":") && !session.end_time.includes("T")
-      ? session.end_time
-      : formatTimeDisplay(session.end_time),
-  total_duration:
-    typeof session.total_duration === "string" && session.total_duration.includes(":")
-      ? session.total_duration
-      : formatDurationDisplay(session.total_duration),
+  start_time: session.start_time,
+  end_time: session.end_time,
+  start_time_formatted: formatTimeDisplay(session.start_time),
+  end_time_formatted: formatTimeDisplay(session.end_time),
+  total_duration: session.total_duration,
+  total_duration_formatted: formatDurationDisplay(session.total_duration),
+  active_duration: session.active_duration,
+  idle_duration: session.idle_duration,
+  break_duration: session.break_duration,
   status: "COMPLETED",
   employee_id: session.employee_id,
   employee_name: session.employee_name,
+  raw: session,
 });
 
 exports.startTimer = async (req, res) => {
@@ -358,15 +356,18 @@ exports.getActiveTimer = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
   try {
-    // Only allow admin or the employee themselves to view history
     const userId = req.user.id;
     let employeeId = req.params.employeeId;
     
     if (req.user.role !== 'admin') {
       const employee = await Employee.findByUserId(userId);
-      if (employee.id != employeeId) {
-        return res.status(403).json({ success: false, message: "Unauthorized" });
+      if (!employee) {
+        return res.status(404).json({ success: false, message: "Employee profile not found" });
       }
+      employeeId = employee.id;
+    } else if (!employeeId) {
+      const employee = await Employee.findByUserId(userId);
+      employeeId = employee ? employee.id : null;
     }
 
     const history = await TimerSession.getHistoryByEmployee(employeeId);
@@ -384,11 +385,17 @@ exports.getSummary = async (req, res) => {
     
     if (req.user.role !== 'admin') {
        const employee = await Employee.findByUserId(userId);
+       if (!employee) {
+         return res.status(404).json({ success: false, message: "Employee profile not found" });
+       }
        employeeId = employee.id;
+    } else if (!employeeId) {
+       const employee = await Employee.findByUserId(userId);
+       employeeId = employee ? employee.id : null;
     }
 
     const summary = await TimerSession.getDailySummary(employeeId, dateStr);
-    res.json({ success: true, summary });
+    res.json({ success: true, summary: summary || { total_duration: 0, active_duration: 0, idle_duration: 0 } });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
   }
@@ -396,9 +403,49 @@ exports.getSummary = async (req, res) => {
 
 exports.getLiveStatus = async (req, res) => {
   try {
-    const activeSessions = await TimerSession.findActiveSessions();
-    res.json({ success: true, activeSessions });
+    const liveEmployees = await TimerSession.getLiveMonitoringData();
+
+    let working = 0;
+    let idle = 0;
+    let paused = 0;
+    let activeTimers = 0;
+    let todayTotalDuration = 0;
+    let todayActiveDuration = 0;
+    let todayIdleDuration = 0;
+
+    liveEmployees.forEach((emp) => {
+      if (emp.status === "running") {
+        working++;
+        activeTimers++;
+      } else if (emp.status === "idle") {
+        idle++;
+        activeTimers++;
+      } else if (emp.status === "paused") {
+        paused++;
+        activeTimers++;
+      }
+      todayTotalDuration += Number(emp.today_total_duration || 0);
+      todayActiveDuration += Number(emp.today_active_duration || 0);
+      todayIdleDuration += Number(emp.today_idle_duration || 0);
+    });
+
+    res.json({
+      success: true,
+      activeSessions: liveEmployees,
+      liveEmployees,
+      stats: {
+        totalActive: activeTimers,
+        working,
+        idle,
+        paused,
+        todayTotalDuration,
+        todayActiveDuration,
+        todayIdleDuration,
+        totalEmployees: liveEmployees.length,
+      },
+    });
   } catch (error) {
+    console.error("Get live status error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

@@ -139,16 +139,22 @@ const Dashboard = () => {
           <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
             <h2 className="text-xl font-semibold text-slate-900">Task distribution</h2>
             <div className="mt-6 h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={taskDistribution} dataKey="value" nameKey="name" outerRadius={110} label>
-                    {taskDistribution.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {taskDistribution.some((t) => t.value > 0) ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={taskDistribution} dataKey="value" nameKey="name" outerRadius={110} label>
+                      {taskDistribution.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-slate-400">
+                  No task data available
+                </div>
+              )}
             </div>
           </div>
         </div>

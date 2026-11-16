@@ -1,53 +1,107 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import EmployeeLayout from "../../components/employee/EmployeeLayout";
-import axios from "axios";
+import { api } from "../../lib/api";
+
+const parseDurationSeconds = (val) => {
+  if (typeof val === "number" && Number.isFinite(val)) return Math.max(0, val);
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed.includes(":")) {
+      const parts = trimmed.split(":").map(Number);
+      if (parts.length === 3 && parts.every((n) => !Number.isNaN(n))) {
+        return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+      }
+      if (parts.length === 2 && parts.every((n) => !Number.isNaN(n))) {
+        return Math.max(0, parts[0] * 60 + parts[1]);
+      }
+    }
+    const num = Number(trimmed);
+    if (!Number.isNaN(num) && Number.isFinite(num)) return Math.max(0, num);
+  }
+  return 0;
+};
+
+const formatDuration = (val) => {
+  const seconds = parseDurationSeconds(val);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+};
+
+const formatTime = (value) => {
+  if (!value) return "-";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.includes("AM") || trimmed.includes("PM")) return trimmed;
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) return trimmed;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return typeof value === "string" && value.trim() ? value : "-";
+  }
+  return parsed.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+const formatDate = (value) => {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "-";
+  }
+  return parsed.toLocaleDateString();
+};
 
 const SessionHistory = () => {
   const [history, setHistory] = useState([]);
   const [summary, setSummary] = useState({ total_duration: 0, active_duration: 0, idle_duration: 0 });
 
+  const getAuthHeaders = useCallback(() => {
+    const token = localStorage.getItem("token");
+    return { Authorization: `Bearer ${token}` };
+  }, []);
+
+  const getEmployeeId = useCallback(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.employeeId || user.employee_id || user.id || null;
+  }, []);
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const employeeId = getEmployeeId();
+      if (!employeeId) return;
+      const res = await api.get(`/timer/history/${employeeId}`, { headers: getAuthHeaders() });
+      if (res.data.success) {
+        setHistory(res.data.history || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch history", error);
+    }
+  }, [getAuthHeaders, getEmployeeId]);
+
+  const fetchSummary = useCallback(async () => {
+    try {
+      const employeeId = getEmployeeId();
+      if (!employeeId) return;
+      const res = await api.get(`/timer/summary/${employeeId}`, { headers: getAuthHeaders() });
+      if (res.data.success) {
+        setSummary(res.data.summary || { total_duration: 0, active_duration: 0, idle_duration: 0 });
+      }
+    } catch (error) {
+      console.error("Failed to fetch summary", error);
+    }
+  }, [getAuthHeaders, getEmployeeId]);
+
   useEffect(() => {
     fetchHistory();
     fetchSummary();
-  }, []);
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    return { Authorization: `Bearer ${token}` };
-  };
-
-  const fetchHistory = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if(!user.id) return;
-      const res = await axios.get(`http://localhost:5000/api/timer/history/${user.id}`, { headers: getAuthHeaders() });
-      if (res.data.success) {
-        setHistory(res.data.history);
-      }
-    } catch (error) {
-      console.error("Failed to fetch history");
-    }
-  };
-
-  const fetchSummary = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if(!user.id) return;
-      const res = await axios.get(`http://localhost:5000/api/timer/summary/${user.id}`, { headers: getAuthHeaders() });
-      if (res.data.success) {
-        setSummary(res.data.summary);
-      }
-    } catch (error) {
-      console.error("Failed to fetch summary");
-    }
-  };
-
-  const formatDuration = (seconds) => {
-    if (!seconds) return "0h 0m";
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    return `${h}h ${m}m`;
-  };
+  }, [fetchHistory, fetchSummary]);
 
   return (
     <EmployeeLayout>
@@ -93,13 +147,13 @@ const SessionHistory = () => {
                 ) : (
                   history.map((session) => (
                     <tr key={session.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-800">{new Date(session.start_time).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{formatDate(session.start_time)}</td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-800">{session.task_name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{new Date(session.start_time).toLocaleTimeString()}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{session.end_time ? new Date(session.end_time).toLocaleTimeString() : '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{formatTime(session.start_time)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{formatTime(session.end_time)}</td>
                       <td className="px-6 py-4">
                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                           session.status === 'stopped' ? 'bg-gray-100 text-gray-800' : 
+                           session.status === 'stopped' || session.status === 'completed' ? 'bg-gray-100 text-gray-800' : 
                            session.status === 'running' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
                          }`}>
                            {session.status.toUpperCase()}
