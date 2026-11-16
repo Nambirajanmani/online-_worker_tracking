@@ -24,8 +24,8 @@ const TaskList = ({ tasks = [] }) => {
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-stone-900">{task.title}</h3>
-              <p className="mt-1 text-sm text-stone-600">{task.description || "No description provided."}</p>
+              <h3 className="text-lg font-semibold text-stone-900">{task.task_title || task.title}</h3>
+              <p className="mt-1 text-sm text-stone-600">{task.task_description || task.description || "No description provided."}</p>
             </div>
             <span
               className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${

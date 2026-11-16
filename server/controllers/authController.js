@@ -109,7 +109,7 @@ const forgotPassword = async (req, res) => {
     }
 
     const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    const resetUrl = `${process.env.CLIENT_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.CLIENT_URL || "https://online-worker-tracking-1.onrender.com"}/reset-password?token=${resetToken}`;
 
     await sendEmail({
       to: user.email,

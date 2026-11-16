@@ -54,6 +54,7 @@ const Tracking = () => {
   const fetchTracking = useCallback(async () => {
     try {
       const { data } = await api.get("/admin/attendance/tracking", {
+        headers: { Authorization: `Bearer ${token}` },
         params: {
           date: selectedDate,
           search: searchTerm || undefined,
@@ -70,7 +71,7 @@ const Tracking = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, searchTerm, lateOnly, todayOnly]);
+  }, [selectedDate, searchTerm, lateOnly, todayOnly, token]);
 
   useEffect(() => {
     setLoading(true);

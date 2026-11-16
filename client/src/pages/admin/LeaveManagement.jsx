@@ -3,7 +3,8 @@ import { format, parseISO } from "date-fns";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import toast from "react-hot-toast";
-import { FaCheck, FaSearch, FaSync, FaTimes } from "react-icons/fa";
+import { FaSearch, FaSync } from "react-icons/fa";
+import { FiCheck, FiX, FiEye, FiTrash2 } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { api } from "../../lib/api";
@@ -22,18 +23,21 @@ const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "cancelled", label: "Cancelled" }
+  { value: "rejected", label: "Rejected" }
 ];
 
 const STATUS_STYLES = {
   pending: "bg-amber-100 text-amber-800",
   approved: "bg-emerald-100 text-emerald-800",
-  rejected: "bg-rose-100 text-rose-800",
-  cancelled: "bg-slate-200 text-slate-600"
+  rejected: "bg-rose-100 text-rose-800"
 };
 
 const uploadOrigin = () => (process.env.REACT_APP_API_URL || "").replace(/\/api\/?$/, "") || "";
+
+const formatDateOnly = (dateStr) => {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString();
+};
 
 const LeaveManagement = () => {
   const { token } = useSelector((state) => state.auth);
@@ -51,12 +55,17 @@ const LeaveManagement = () => {
   const [leaveType, setLeaveType] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [appliedFrom, setAppliedFrom] = useState("");
-  const [appliedTo, setAppliedTo] = useState("");
+  const [appliedFrom] = useState("");
+  const [appliedTo] = useState("");
+  
   const [actionRow, setActionRow] = useState(null);
-  const [actionType, setActionType] = useState("approved");
+  const [actionType, setActionType] = useState(null); // 'approve', 'reject', 'view'
+
+  // For Approve/Reject
   const [adminRemark, setAdminRemark] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -110,7 +119,7 @@ const LeaveManagement = () => {
     };
   }, [token, fetchAll]);
 
-  const submitAction = async () => {
+  const submitStatusAction = async () => {
     if (!actionRow) return;
     setSubmitting(true);
     try {
@@ -129,10 +138,37 @@ const LeaveManagement = () => {
     }
   };
 
+  const handleDelete = async (row) => {
+    if (!window.confirm("Are you sure you want to delete this leave request?")) return;
+    try {
+      await api.delete(`/admin/leaves/${row.id}`);
+      toast.success("Leave request deleted");
+      await fetchAll();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Delete failed");
+    }
+  };
+
   const openAction = (row, type) => {
     setActionRow(row);
     setActionType(type);
-    setAdminRemark(row.admin_remark || "");
+    if (type === "approved" || type === "rejected") {
+      setAdminRemark(row.admin_remark || "");
+    }
+  };
+
+  const handleInlineStatusChange = async (row, newStatus) => {
+    if (newStatus === row.status) return;
+    setUpdatingStatusId(row.id);
+    try {
+      await api.put(`/admin/leaves/${row.id}`, { status: newStatus });
+      toast.success(`Status updated to ${newStatus}`);
+      await fetchAll();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Status update failed");
+    } finally {
+      setUpdatingStatusId(null);
+    }
   };
 
   return (
@@ -165,14 +201,17 @@ const LeaveManagement = () => {
 
         <div className="mb-6 grid grid-cols-1 gap-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 lg:grid-cols-3 xl:grid-cols-6">
           <div className="relative lg:col-span-2">
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name or employee ID"
-              className="input-field pl-10"
-            />
+            <label className="mb-1 block text-xs font-medium text-slate-600">Search</label>
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name or employee ID"
+                className="input-field pl-10"
+              />
+            </div>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Leave type</label>
@@ -195,20 +234,12 @@ const LeaveManagement = () => {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Leave from (min)</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Leave from</label>
             <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="input-field" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Leave to (max)</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Leave to</label>
             <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="input-field" />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Applied from</label>
-            <input type="date" value={appliedFrom} onChange={(e) => setAppliedFrom(e.target.value)} className="input-field" />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Applied to</label>
-            <input type="date" value={appliedTo} onChange={(e) => setAppliedTo(e.target.value)} className="input-field" />
           </div>
         </div>
 
@@ -223,15 +254,11 @@ const LeaveManagement = () => {
                   <tr>
                     {[
                       "Employee",
-                      "ID",
                       "Type",
                       "From",
                       "To",
                       "Days",
-                      "Reason",
-                      "File",
                       "Status",
-                      "Applied",
                       "Actions"
                     ].map((h) => (
                       <th key={h} className="whitespace-nowrap px-3 py-3 text-left text-xs font-semibold uppercase text-slate-500">
@@ -243,61 +270,60 @@ const LeaveManagement = () => {
                 <tbody className="divide-y divide-slate-200">
                   {loading ? (
                     <tr>
-                      <td colSpan="11" className="px-4 py-12 text-center">
+                      <td colSpan="7" className="px-4 py-12 text-center">
                         <div className="spinner mx-auto" />
                       </td>
                     </tr>
                   ) : rows.length ? (
                     rows.map((row) => (
                       <tr key={row.id} className="hover:bg-slate-50">
-                        <td className="max-w-[140px] truncate px-3 py-3 font-medium text-slate-900">{row.employee_name}</td>
-                        <td className="whitespace-nowrap px-3 py-3 text-slate-600">{row.employee_code}</td>
+                        <td className="px-3 py-3 font-medium text-slate-900">
+                          {row.employee_name}
+                          <div className="text-xs text-slate-500">{row.employee_code}</div>
+                        </td>
                         <td className="whitespace-nowrap px-3 py-3">{LEAVE_TYPES.find((t) => t.value === row.leave_type)?.label || row.leave_type}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{row.from_date}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{row.to_date}</td>
+                        <td className="whitespace-nowrap px-3 py-3">{formatDateOnly(row.from_date)}</td>
+                        <td className="whitespace-nowrap px-3 py-3">{formatDateOnly(row.to_date)}</td>
                         <td className="whitespace-nowrap px-3 py-3">{row.total_days}</td>
-                        <td className="max-w-[180px] truncate px-3 py-3 text-slate-600" title={row.reason}>
-                          {row.reason}
+                        <td className="whitespace-nowrap px-3 py-3">
+                          <select
+                            value={row.status}
+                            disabled={updatingStatusId === row.id}
+                            onChange={(e) => handleInlineStatusChange(row, e.target.value)}
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400 ${
+                              STATUS_STYLES[row.status] || "bg-gray-100 text-gray-700"
+                            } ${updatingStatusId === row.id ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            {STATUS_OPTIONS.filter((o) => o.value !== "").map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="whitespace-nowrap px-3 py-3">
-                          {row.attachment || row.attachment_url ? (
-                            <a
-                              href={`${uploadOrigin()}${row.attachment || row.attachment_url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sky-600 hover:underline"
-                            >
-                              View
-                            </a>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3">
-                          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_STYLES[row.status] || ""}`}>
-                            {row.status}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-slate-600">
-                          {row.applied_at ? format(parseISO(row.applied_at), "dd MMM yyyy HH:mm") : "—"}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3">
-                          {row.status === "pending" && (
-                            <div className="flex gap-2">
-                              <button type="button" className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-700" onClick={() => openAction(row, "approved")}>
-                                <FaCheck className="inline" /> Approve
-                              </button>
-                              <button type="button" className="rounded-lg bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700" onClick={() => openAction(row, "rejected")}>
-                                <FaTimes className="inline" /> Reject
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-3">
+                            <button title="View Details" type="button" className="text-emerald-600 hover:text-emerald-700" onClick={() => openAction(row, "view")}>
+                              <FiEye size={18} />
+                            </button>
+                            {row.status === "pending" && (
+                              <>
+                                <button title="Approve" type="button" className="text-emerald-600 hover:text-emerald-700" onClick={() => openAction(row, "approved")}>
+                                  <FiCheck size={18} />
+                                </button>
+                                <button title="Reject" type="button" className="text-rose-600 hover:text-rose-700" onClick={() => openAction(row, "rejected")}>
+                                  <FiX size={18} />
+                                </button>
+                              </>
+                            )}
+                            <button title="Delete Request" type="button" className="text-red-600 hover:text-red-700" onClick={() => handleDelete(row)}>
+                              <FiTrash2 size={18} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="11" className="px-4 py-12 text-center text-slate-500">
+                      <td colSpan="7" className="px-4 py-12 text-center text-slate-500">
                         No leave requests match your filters.
                       </td>
                     </tr>
@@ -314,14 +340,15 @@ const LeaveManagement = () => {
           </div>
         </div>
 
-        {actionRow && (
+        {/* Status Action Modal (Approve / Reject) */}
+        {actionRow && (actionType === "approved" || actionType === "rejected") && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
             <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
               <h3 className="text-lg font-semibold text-slate-900">
                 {actionType === "approved" ? "Approve leave" : "Reject leave"}
               </h3>
               <p className="mt-2 text-sm text-slate-600">
-                {actionRow.employee_name} · {actionRow.from_date} → {actionRow.to_date}
+                {actionRow.employee_name} · {formatDateOnly(actionRow.from_date)} → {formatDateOnly(actionRow.to_date)}
               </p>
               <label className="mt-4 block text-sm font-medium text-slate-700">Admin remark (optional)</label>
               <textarea
@@ -333,15 +360,76 @@ const LeaveManagement = () => {
               />
               <div className="mt-6 flex justify-end gap-3">
                 <button type="button" className="btn-secondary" onClick={() => setActionRow(null)} disabled={submitting}>
-                  Close
+                  Cancel
                 </button>
-                <button type="button" className="btn-primary" onClick={submitAction} disabled={submitting}>
+                <button type="button" className="btn-primary" onClick={submitStatusAction} disabled={submitting}>
                   {submitting ? "Saving…" : "Confirm"}
                 </button>
               </div>
             </div>
           </div>
         )}
+
+        {/* View Details Modal */}
+        {actionRow && actionType === "view" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+            <div className="w-full max-w-2xl rounded-[1.5rem] bg-white p-6 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-semibold text-slate-900">Leave Details</h3>
+                <button type="button" className="text-slate-400 hover:text-slate-600 text-2xl leading-none" onClick={() => setActionRow(null)}>
+                  &times;
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  ["Employee", `${actionRow.employee_name} (${actionRow.employee_code})`],
+                  ["Type", LEAVE_TYPES.find(t => t.value === actionRow.leave_type)?.label || actionRow.leave_type],
+                  ["Status", <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_STYLES[actionRow.status] || ""}`}>{actionRow.status}</span>],
+                  ["From", formatDateOnly(actionRow.from_date)],
+                  ["To", formatDateOnly(actionRow.to_date)],
+                  ["Total Days", actionRow.total_days],
+                  ["Applied At", actionRow.applied_at ? format(parseISO(actionRow.applied_at), "PPP p") : "—"]
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
+                    <div className="text-sm font-medium text-slate-800">{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Reason</p>
+                <div className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{actionRow.reason || "—"}</div>
+              </div>
+              
+              {(actionRow.attachment || actionRow.attachment_url) && (
+                <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Attachment</p>
+                  <a href={`${uploadOrigin()}${actionRow.attachment || actionRow.attachment_url}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-sky-600 hover:underline">
+                    View Attachment
+                  </a>
+                </div>
+              )}
+
+              {actionRow.admin_remark && (
+                <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Admin Remark</p>
+                  <div className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{actionRow.admin_remark}</div>
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end">
+                <button type="button" className="btn-secondary" onClick={() => setActionRow(null)}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+
+
       </div>
     </AdminLayout>
   );

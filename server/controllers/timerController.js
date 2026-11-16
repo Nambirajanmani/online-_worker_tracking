@@ -449,3 +449,33 @@ exports.getLiveStatus = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+exports.deleteTimer = async (req, res) => {
+  try {
+    const { timerId } = req.params;
+    const session = await TimerSession.findById(timerId);
+    
+    if (!session) {
+      return res.status(404).json({ success: false, message: "Timer session not found" });
+    }
+
+    if (req.user.role !== 'admin') {
+      const employee = await Employee.findByUserId(req.user.id);
+      if (employee.id !== session.employee_id) {
+        return res.status(403).json({ success: false, message: "Unauthorized to delete this timer" });
+      }
+    }
+
+    await TimerSession.delete(timerId);
+
+    // Notify clients that history changed
+    if (global.io) {
+      global.io.emit("timer_update", { type: "deleted", timerId });
+    }
+
+    res.json({ success: true, message: "Timer session deleted successfully" });
+  } catch (error) {
+    console.error("Delete timer error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

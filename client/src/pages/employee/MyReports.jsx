@@ -7,7 +7,6 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
-  AlertCircle,
   CheckCircle,
   Clock,
   XCircle,
@@ -15,7 +14,6 @@ import {
   Plus,
 } from "lucide-react";
 import EmployeeLayout from "../../components/employee/EmployeeLayout";
-import toast from "react-hot-toast";
 
 const MyReports = () => {
   const dispatch = useDispatch();

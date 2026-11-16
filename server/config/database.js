@@ -5,33 +5,29 @@ const path = require("path");
 
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
-const requiredEnvVars = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"];
-const missingEnvVars = requiredEnvVars.filter((key) => typeof process.env[key] !== "string" || process.env[key].trim() === "");
-
-if (missingEnvVars.length) {
+if (!process.env.DATABASE_URL) {
   throw new Error(
-    `Missing required database environment variables: ${missingEnvVars.join(", ")}. ` +
-      "Create server/.env from server/.env.example and fill in your PostgreSQL credentials."
+    "Missing required environment variable: DATABASE_URL. " +
+      "Create server/.env from server/.env.example and fill in your NeonDB connection string."
   );
 }
 
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT || 5432),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  },
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000
 });
 
 pool.on("connect", () => {
-  console.log("Connected to PostgreSQL database");
+  console.log("Connected to NeonDB (PostgreSQL) database");
 });
 
 pool.on("error", (error) => {
-  console.error("Unexpected PostgreSQL error", error);
+  console.error("Unexpected NeonDB error", error);
 });
 
 const connectDB = async () => {

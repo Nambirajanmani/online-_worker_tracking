@@ -34,12 +34,13 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       try {
         const headers = { Authorization: `Bearer ${token}` };
-        const [employeesRes, attendanceRes, tasksRes, leavesRes, projectsRes] = await Promise.all([
+        const [employeesRes, attendanceRes, tasksRes, leavesRes, projectsRes, weeklyRes] = await Promise.all([
           api.get("/admin/employees", { headers }),
           api.get("/admin/attendance/today", { headers }),
           api.get("/admin/tasks", { headers }),
           api.get("/admin/leaves?status=pending", { headers }),
-          api.get("/admin/projects", { headers })
+          api.get("/admin/projects", { headers }),
+          api.get("/admin/attendance/weekly", { headers })
         ]);
 
         const employees = Array.isArray(employeesRes.data?.data) ? employeesRes.data.data : [];
@@ -59,13 +60,7 @@ const Dashboard = () => {
           completionRate
         });
 
-        setAttendanceData([
-          { day: "Mon", present: 42, absent: 8, late: 3 },
-          { day: "Tue", present: 45, absent: 5, late: 2 },
-          { day: "Wed", present: 44, absent: 6, late: 4 },
-          { day: "Thu", present: 47, absent: 3, late: 1 },
-          { day: "Fri", present: 43, absent: 7, late: 2 }
-        ]);
+        setAttendanceData(Array.isArray(weeklyRes.data?.data) ? weeklyRes.data.data : []);
 
         setTaskDistribution([
           { name: "Completed", value: completedTasks, color: "#10b981" },

@@ -124,8 +124,8 @@ const getTaskById = async (req, res) => {
 // Employee: Get my assigned tasks
 const getMyTasks = async (req, res) => {
   try {
-    // Fetch only active/in-progress tasks for employee's time tracker
-    const tasks = await Task.findByEmployeeId(req.user.employee_id, true);
+    // Fetch all tasks for employee's task management page
+    const tasks = await Task.findByEmployeeId(req.user.employee_id, false);
     res.json({ success: true, data: tasks });
   } catch (error) {
     console.error("Get my tasks error:", error);

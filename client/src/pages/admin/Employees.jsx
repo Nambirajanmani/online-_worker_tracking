@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaEdit, FaFilter, FaPlus, FaSearch, FaTrash } from "react-icons/fa";
+import { FaEdit, FaEye, FaFilter, FaPlus, FaSearch, FaTrash } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import AdminLayout from "../../components/admin/AdminLayout";
 import {
@@ -21,6 +21,7 @@ const emptyForm = {
   position: "",
   phone: "",
   joiningDate: "",
+  endDate: "",
   salary: ""
 };
 
@@ -30,7 +31,9 @@ const Employees = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [viewingEmployee, setViewingEmployee] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     dispatch(fetchEmployees());
@@ -42,8 +45,27 @@ const Employees = () => {
       .includes(searchTerm.toLowerCase())
   );
 
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.employeeCode.trim()) errors.employeeCode = "Employee ID is required";
+    if (!formData.firstName.trim()) errors.firstName = "First name is required";
+    else if (!/^[a-zA-Z\s]+$/.test(formData.firstName)) errors.firstName = "Only letters and spaces allowed";
+    if (!formData.lastName.trim()) errors.lastName = "Last name is required";
+    else if (!/^[a-zA-Z\s]+$/.test(formData.lastName)) errors.lastName = "Only letters and spaces allowed";
+    if (!formData.email.trim()) errors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = "Enter a valid email address";
+    if (!editingEmployee && !formData.password) errors.password = "Password is required";
+    if (formData.phone && formData.phone.length !== 10) errors.phone = "Phone number must be exactly 10 digits";
+    if (formData.salary && !/^\d+$/.test(formData.salary)) errors.salary = "Salary must be a whole number";
+    return errors;
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const errors = validateForm();
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     const action = editingEmployee
       ? updateEmployee({ id: editingEmployee.id, data: formData })
       : createEmployee(formData);
@@ -53,6 +75,7 @@ const Employees = () => {
       setShowModal(false);
       setEditingEmployee(null);
       setFormData(emptyForm);
+      setFormErrors({});
     }
   };
 
@@ -68,7 +91,8 @@ const Employees = () => {
       position: employee.position || "",
       phone: employee.phone || "",
       joiningDate: employee.joining_date?.split("T")[0] || "",
-      salary: employee.salary || ""
+      endDate: employee.end_date?.split("T")[0] || "",
+      salary: employee.salary ? String(parseInt(employee.salary, 10)) : ""
     });
     setShowModal(true);
   };
@@ -95,6 +119,7 @@ const Employees = () => {
     setShowModal(false);
     setEditingEmployee(null);
     setFormData(emptyForm);
+    setFormErrors({});
   };
 
   return (
@@ -184,10 +209,13 @@ const Employees = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <button type="button" className="text-sky-600 hover:text-sky-700" onClick={() => handleEdit(employee)}>
+                          <button type="button" title="View" className="text-emerald-600 hover:text-emerald-700" onClick={() => setViewingEmployee(employee)}>
+                            <FaEye />
+                          </button>
+                          <button type="button" title="Edit" className="text-sky-600 hover:text-sky-700" onClick={() => handleEdit(employee)}>
                             <FaEdit />
                           </button>
-                          <button type="button" className="text-rose-600 hover:text-rose-700" onClick={() => handleDelete(employee.id)}>
+                          <button type="button" title="Delete" className="text-rose-600 hover:text-rose-700" onClick={() => handleDelete(employee.id)}>
                             <FaTrash />
                           </button>
                         </div>
@@ -212,7 +240,7 @@ const Employees = () => {
               <h2 className="text-2xl font-semibold text-slate-900">
                 {editingEmployee ? "Edit employee" : "Add employee"}
               </h2>
-              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {[
                     ["Employee ID", "employeeCode", "text"],
@@ -223,19 +251,44 @@ const Employees = () => {
                     ["Position", "position", "text"],
                     ["Phone", "phone", "tel"],
                     ["Joining Date", "joiningDate", "date"],
+                    ["End Date", "endDate", "date"],
                     ["Salary", "salary", "number"]
                   ].map(([label, field, type]) => (
                     <div key={field}>
                       <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
                       <input
-                        type={type}
-                        required={field === "employeeCode" || field === "firstName" || field === "lastName" || field === "email" ? true : field !== "password"}
+                        type={field === "salary" ? "text" : type}
                         value={formData[field]}
-                        onChange={(event) =>
-                          setFormData((current) => ({ ...current, [field]: event.target.value }))
-                        }
-                        className="input-field"
+                        onChange={(event) => {
+                          let value = event.target.value;
+                          if (field === "firstName" || field === "lastName") {
+                            value = value.replace(/[^a-zA-Z\s]/g, "");
+                          }
+                          if (field === "phone") {
+                            value = value.replace(/[^0-9]/g, "").slice(0, 10);
+                          }
+                          if (field === "salary") {
+                            value = value.replace(/[^0-9]/g, "");
+                          }
+                          setFormData((current) => ({ ...current, [field]: value }));
+                          if (formErrors[field]) {
+                            setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+                          }
+                        }}
+                        placeholder={field === "phone" ? "10-digit number" : ""}
+                        maxLength={field === "phone" ? 10 : undefined}
+                        className={`input-field ${
+                          formErrors[field] ? "!border-rose-400 !ring-rose-200 focus:!border-rose-500 focus:!ring-rose-300" : ""
+                        }`}
                       />
+                      {formErrors[field] && (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-rose-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          {formErrors[field]}
+                        </p>
+                      )}
                     </div>
                   ))}
                   <div>
@@ -267,6 +320,48 @@ const Employees = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {viewingEmployee && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-2xl rounded-[1.5rem] bg-slate-900 p-6 shadow-2xl border border-slate-800">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold text-white">Employee Details</h2>
+                <button type="button" className="text-slate-400 hover:text-white text-xl" onClick={() => setViewingEmployee(null)}>&times;</button>
+              </div>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 text-xl font-semibold text-white shadow-lg shadow-sky-500/20">
+                  {viewingEmployee.first_name?.[0]}{viewingEmployee.last_name?.[0]}
+                </div>
+                <div>
+                  <p className="text-xl font-semibold text-white">{viewingEmployee.first_name} {viewingEmployee.last_name}</p>
+                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold mt-1 ${viewingEmployee.is_active ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"}`}>
+                    {viewingEmployee.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  ["Employee ID", viewingEmployee.employee_code || "N/A"],
+                  ["Department", viewingEmployee.department || "N/A"],
+                  ["Position", viewingEmployee.position || "N/A"],
+                  ["Email", viewingEmployee.email || "N/A"],
+                  ["Phone", viewingEmployee.phone || "N/A"],
+                  ["Joining Date", viewingEmployee.joining_date ? new Date(viewingEmployee.joining_date).toLocaleDateString() : "N/A"],
+                  ["End Date", viewingEmployee.end_date ? new Date(viewingEmployee.end_date).toLocaleDateString() : "N/A"],
+                  ["Salary", viewingEmployee.salary ? `₹${Number(viewingEmployee.salary).toLocaleString()}` : "N/A"]
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl bg-slate-800/80 p-4 ring-1 ring-white/5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
+                    <p className="text-sm font-medium text-slate-200">{value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end mt-6">
+                <button type="button" className="rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-700 ring-1 ring-white/10 transition-all" onClick={() => setViewingEmployee(null)}>Close</button>
+              </div>
             </div>
           </div>
         )}

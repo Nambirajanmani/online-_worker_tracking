@@ -15,4 +15,6 @@ router.get("/summary/:employeeId", protect, timerController.getSummary);
 
 router.get("/live", protect, adminOnly, timerController.getLiveStatus);
 
+router.delete("/:timerId", protect, timerController.deleteTimer);
+
 module.exports = router;
